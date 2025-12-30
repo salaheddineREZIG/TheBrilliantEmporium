@@ -19,4 +19,4 @@ ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
 # Use shell form to expand $PORT variable
-CMD gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 3 --worker-tmp-dir /dev/shm
+CMD gunicorn wsgi:app --bind 0.0.0.0:$8000 --workers 3 --worker-tmp-dir /dev/shm
