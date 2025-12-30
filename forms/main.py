@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField, SelectField, DecimalField, DateField, TextAreaField, BooleanField, IntegerField, RadioField, FileField
 from wtforms.validators import DataRequired, Email, Length, EqualTo, NumberRange, Optional, ValidationError
 from datetime import date
-from models import AccountType, TransactionType
+from models import AccountType, TransactionType, Category
 
 
 class ValidMonth:
@@ -174,10 +174,40 @@ class TransactionForm(FlaskForm):
     })
     
     def __init__(self, *args, **kwargs):
-        super(TransactionForm, self).__init__(*args, **kwargs)
-        # Dynamically populate account and category choices
-        self.account_id.choices = []
-        self.category_id.choices = []
+        super().__init__(*args, **kwargs)
+        # Dynamically set category choices based on type
+        if self.type.data:
+            self.set_category_choices(self.type.data)
+    
+    def set_category_choices(self, transaction_type):
+        """Set category choices based on transaction type"""
+        # Normalize transaction_type to a TransactionType enum
+        ttype = None
+        if isinstance(transaction_type, TransactionType):
+            ttype = transaction_type
+        else:
+            # transaction_type may be a value like 'expense', a name like 'EXPENSE',
+            # or a representation like 'TransactionType.EXPENSE'. Try several fallbacks.
+            try:
+                ttype = TransactionType(transaction_type)
+            except Exception:
+                try:
+                    # If given as 'TransactionType.EXPENSE' or similar
+                    s = str(transaction_type)
+                    if s.startswith('TransactionType.'):
+                        name = s.split('.', 1)[1]
+                        ttype = TransactionType[name]
+                    else:
+                        ttype = TransactionType[s.upper()]
+                except Exception:
+                    # Fallback to expense
+                    ttype = TransactionType.EXPENSE
+
+        categories = Category.query.filter_by(
+            type=ttype,
+            is_active=True
+        ).all()
+        self.category_id.choices = [(cat.id, f"{cat.icon} {cat.name}") for cat in categories]
 
 
 # ============== TRANSFER FORM ==============
@@ -467,3 +497,39 @@ class ImportForm(FlaskForm):
     })
 
 
+class PreferencesForm(FlaskForm):
+    """Form for user preferences"""
+    # Dashboard Preferences
+    show_charts = BooleanField('Show charts on dashboard', default=True)
+    show_recent = BooleanField('Show recent transactions', default=True)
+    show_budgets = BooleanField('Show budget progress', default=True)
+    
+    # Transaction Preferences
+    auto_categorize = BooleanField('Auto-categorize transactions', default=True)
+    duplicate_detection = BooleanField('Detect duplicate transactions', default=True)
+    require_description = BooleanField('Require description for transactions', default=False)
+    
+    # In-App Notifications
+    monthly_report = BooleanField('Monthly financial report', default=True)
+    app_budget_alerts = BooleanField('Budget alerts', default=True)
+    app_bill_reminders = BooleanField('Bill payment reminders', default=True)
+    app_goals_update = BooleanField('Goal progress updates', default=True)
+    
+    submit = SubmitField('Save Preferences', render_kw={
+        "class": "btn btn-primary"
+    })
+
+
+class ClearDataForm(FlaskForm):
+    """Form for clearing all data"""
+    confirm = StringField('Confirmation', validators=[
+        DataRequired(message='Confirmation is required'),
+        Length(min=10, message='Please type the confirmation text exactly')
+    ], render_kw={
+        "placeholder": "Type 'clear all data' to confirm",
+        "class": "form-control"
+    })
+    
+    submit = SubmitField('Clear All Data', render_kw={
+        "class": "btn btn-danger"
+    })

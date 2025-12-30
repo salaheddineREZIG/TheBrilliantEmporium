@@ -1,0 +1,163 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Create Account - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .guide-card {
+        background: linear-gradient(135deg, var(--dark-gray) 0%, var(--gray) 100%);
+        border: 1px solid var(--light-gray);
+    }
+    
+    .guide-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    
+    .guide-icon.checking { background-color: rgba(0, 123, 255, 0.2); color: #0d6efd; }
+    .guide-icon.savings { background-color: rgba(40, 167, 69, 0.2); color: #28a745; }
+    .guide-icon.credit_card { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; }
+    .guide-icon.cash { background-color: rgba(23, 162, 184, 0.2); color: #17a2b8; }
+    .guide-icon.wallet { background-color: rgba(111, 66, 193, 0.2); color: #6f42c1; }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="mb-4">
+                <a href="{{ url_for('accounts.index') }}" class="btn btn-outline-accent btn-sm mb-3">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Accounts
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-wallet2 text-accent me-2"></i>
+                    Create New Account
+                </h1>
+                <p class="text-gray">Add a new financial account to track</p>
+            </div>
+            
+            <!-- Account Form -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('accounts.create') }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <!-- Account Name -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Account Name *</label>
+                                {{ form.name(class="form-control", placeholder="e.g., Chase Checking, PayPal") }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Account Type -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Account Type *</label>
+                                {{ form.type(class="form-select") }}
+                                {% if form.type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.type.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Initial Balance -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Initial Balance *</label>
+                                <div class="input-group">
+                                    {{ form.currency(class="form-select w-auto") }}
+                                    {{ form.initial_balance(class="form-control", placeholder="0.00") }}
+                                </div>
+                                {% if form.initial_balance.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.initial_balance.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text text-gray">Current balance when creating this account</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('accounts.index') }}" class="btn btn-outline-accent">Cancel</a>
+                            {{ form.submit(class="btn btn-accent") }}
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Account Type Guide -->
+            <div class="card mt-4 guide-card">
+                <div class="card-header border-secondary">
+                    <h6 class="mb-0"><i class="bi bi-info-circle text-accent me-2"></i>Account Type Guide</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon checking">
+                                <i class="bi bi-bank"></i>
+                            </div>
+                            <strong class="d-block">Checking Account</strong>
+                            <span class="text-gray small">For daily transactions, bill payments</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon savings">
+                                <i class="bi bi-piggy-bank"></i>
+                            </div>
+                            <strong class="d-block">Savings Account</strong>
+                            <span class="text-gray small">For saving money, emergency funds</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon credit_card">
+                                <i class="bi bi-credit-card"></i>
+                            </div>
+                            <strong class="d-block">Credit Card</strong>
+                            <span class="text-gray small">For credit card balances, payments</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon cash">
+                                <i class="bi bi-cash"></i>
+                            </div>
+                            <strong class="d-block">Cash</strong>
+                            <span class="text-gray small">Physical cash on hand, wallet money</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon wallet">
+                                <i class="bi bi-wallet"></i>
+                            </div>
+                            <strong class="d-block">Digital Wallet</strong>
+                            <span class="text-gray small">PayPal, Venmo, Cash App, etc.</span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="guide-icon investment">
+                                <i class="bi bi-graph-up"></i>
+                            </div>
+                            <strong class="d-block">Investment</strong>
+                            <span class="text-gray small">Stocks, bonds, retirement accounts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

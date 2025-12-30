@@ -1,0 +1,477 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Edit Budget - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .form-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.2s;
+    }
+    
+    .performance-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.3s;
+    }
+    
+    .help-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.4s;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-step {
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: slideInLeft 0.5s ease forwards;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .performance-meter {
+        height: 100px;
+        position: relative;
+        margin: 20px 0;
+    }
+    
+    .performance-track {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+        transform: translateY(-50%);
+    }
+    
+    .performance-progress {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        height: 6px;
+        background: linear-gradient(90deg, var(--success), var(--warning), var(--error));
+        border-radius: 3px;
+        transform: translateY(-50%);
+        width: 0%;
+        transition: width 1.5s ease-out;
+    }
+    
+    .performance-marker {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--dark-gray);
+        border: 3px solid;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+    
+    .performance-marker:hover {
+        transform: translate(-50%, -50%) scale(1.1);
+        box-shadow: 0 0 20px currentColor;
+    }
+    
+    .metric-card {
+        padding: 20px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .metric-card:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateY(-5px);
+    }
+    
+    .metric-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .metric-card:hover .metric-icon {
+        transform: rotate(10deg) scale(1.1);
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus + .input-icon {
+        color: var(--accent);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .tip-item {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(5px);
+    }
+    
+    .tip-item i {
+        color: var(--accent);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover i {
+        transform: rotate(10deg);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    }
+    
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.8s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Page Header -->
+            <div class="mb-4 fade-in">
+                <a href="{{ url_for('budgets.index') }}{% if request.args.get('month') %}?month={{ request.args.get('month') }}{% endif %}" 
+                   class="btn btn-outline-accent btn-sm mb-3 hover-lift">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Budgets
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-pencil-square text-accent me-2"></i>
+                    Edit Budget
+                </h1>
+                <p class="text-gray">Update budget details and track performance</p>
+            </div>
+            
+            <!-- Performance Overview -->
+            <div class="card performance-card mb-4">
+                <div class="card-body">
+                    <h5 class="mb-4"><i class="bi bi-graph-up text-accent me-2"></i>Performance Overview</h5>
+                    
+                    <!-- Performance Meter -->
+                    <div class="performance-meter">
+                        <div class="performance-track"></div>
+                        <div class="performance-progress" id="progressBar"></div>
+                        
+                        {% set percentage = ((budget.spent_amount | float) / (budget.amount | float) * 100) if (budget.amount | float) > 0 else 0 %}
+                        {% set progress_color = 'var(--success)' if percentage <= 80 else 'var(--warning)' if percentage <= 100 else 'var(--error)' %}
+                        
+                        <div class="performance-marker" id="progressMarker" 
+                             style="left: {{ percentage if percentage <= 100 else 100 }}%; border-color: {{ progress_color }}; color: {{ progress_color }};">
+                            {{ "%.0f"|format(percentage) }}%
+                        </div>
+                    </div>
+                    
+                    <!-- Metrics Grid -->
+                    <div class="row g-3 mt-4">
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <div class="metric-icon bg-dark-gray">
+                                    <i class="bi bi-cash-stack text-accent fs-4"></i>
+                                </div>
+                                <small class="text-gray d-block">Budget</small>
+                                <h4 class="mb-0">${{ "%.2f"|format(budget.amount) }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <div class="metric-icon bg-dark-gray">
+                                    <i class="bi bi-currency-dollar {{ 'text-danger' if budget.spent_amount > budget.amount else 'text-light' }} fs-4"></i>
+                                </div>
+                                <small class="text-gray d-block">Spent</small>
+                                <h4 class="mb-0 {{ 'text-danger' if budget.spent_amount > budget.amount else 'text-light' }}">
+                                    ${{ "%.2f"|format(budget.spent_amount) }}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <div class="metric-icon bg-dark-gray">
+                                    <i class="bi bi-wallet2 {{ 'text-danger' if budget.remaining_amount < 0 else 'text-success' }} fs-4"></i>
+                                </div>
+                                <small class="text-gray d-block">Remaining</small>
+                                <h4 class="mb-0 {{ 'text-danger' if budget.remaining_amount < 0 else 'text-success' }}">
+                                    ${{ "%.2f"|format(budget.remaining_amount) }}
+                                </h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="metric-card">
+                                <div class="metric-icon bg-dark-gray">
+                                    <i class="bi bi-percent {{ 'text-danger' if percentage > 100 else 'text-warning' if percentage > 80 else 'text-success' }} fs-4"></i>
+                                </div>
+                                <small class="text-gray d-block">Progress</small>
+                                <h4 class="mb-0 {{ 'text-danger' if percentage > 100 else 'text-warning' if percentage > 80 else 'text-success' }}">
+                                    {{ "%.0f"|format(percentage) }}%
+                                </h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Budget Form -->
+            <div class="card form-card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('budgets.edit', budget_id=budget.id) }}" id="budgetForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row form-step" style="animation-delay: 0.1s">
+                            <!-- Category -->
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">Category *</label>
+                                <div class="position-relative">
+                                    {{ form.category_id(class="form-select ps-4") }}
+                                    <div class="input-icon">
+                                        <i class="bi bi-tag"></i>
+                                    </div>
+                                </div>
+                                {% if form.category_id.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.category_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Month -->
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">Month *</label>
+                                <div class="position-relative">
+                                    {{ form.month(class="form-control ps-4", placeholder="YYYYMM") }}
+                                    <div class="input-icon">
+                                        <i class="bi bi-calendar"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">Format: YYYYMM (e.g., 202412 for December 2024)</div>
+                                {% if form.month.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.month.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Amount -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.2s">
+                            <label class="form-label">Budget Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark-gray border-secondary"><i class="bi bi-currency-dollar"></i></span>
+                                {{ form.amount(class="form-control", placeholder="0.00", step="0.01", min="0") }}
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.amount.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-5 form-step" style="animation-delay: 0.3s">
+                            <div>
+                                <a href="{{ url_for('budgets.index') }}{% if request.args.get('month') %}?month={{ request.args.get('month') }}{% endif %}" 
+                                   class="btn btn-outline-accent hover-lift me-2">Cancel</a>
+                                <a href="#" class="btn btn-outline-danger hover-lift" onclick="confirmDelete()">
+                                    <i class="bi bi-trash me-1"></i> Delete
+                                </a>
+                            </div>
+                            <button type="submit" class="btn btn-accent hover-lift px-4">
+                                <i class="bi bi-check-circle me-2"></i> Update Budget
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Information -->
+            <div class="card help-card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-lightbulb text-accent me-2"></i>Budget Adjustment Tips</h6>
+                    <div class="tip-item">
+                        <i class="bi bi-arrow-up-circle me-2"></i>
+                        Increase budget if consistently overspending (needs vs wants analysis)
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-arrow-down-circle me-2"></i>
+                        Decrease budget if underspending to allocate funds elsewhere
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-calendar-check me-2"></i>
+                        Consider seasonal variations when adjusting monthly budgets
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-currency-exchange me-2"></i>
+                        Re-evaluate budget allocation every 3-6 months
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-gray border-secondary">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-light">Delete Budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                </div>
+                <p class="text-light text-center">Are you sure you want to delete this budget?</p>
+                <p class="text-gray text-center small">This will remove the budget for {{ budget.category.name if budget.category else 'this category' }} in {{ '%02d' % (budget.month % 100) }}/{{ budget.month // 100 }}</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-accent" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('budgets.delete', budget_id=budget.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Budget</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const monthInput = document.getElementById('{{ form.month.id }}');
+        const progressBar = document.getElementById('progressBar');
+        const progressMarker = document.getElementById('progressMarker');
+        
+        // Animate performance meter
+        setTimeout(() => {
+            {% set percentage = ((budget.spent_amount | float) / (budget.amount | float) * 100) if (budget.amount | float) > 0 else 0 %}
+            const targetWidth = Math.min({{ percentage }}, 100);
+            progressBar.style.width = targetWidth + '%';
+            
+            // Animate marker
+            progressMarker.style.transition = 'left 1.5s ease-out';
+        }, 500);
+        
+        // Auto-format month input
+        monthInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.substring(0, 6);
+            }
+            this.value = value;
+        });
+        
+        // Form submission animation
+        const form = document.getElementById('budgetForm');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function(e) {
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Updating...';
+            submitBtn.disabled = true;
+            
+            // Animate form submission
+            const formCard = document.querySelector('.form-card');
+            formCard.style.transition = 'all 0.3s ease';
+            formCard.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+                formCard.style.opacity = '1';
+            }, 3000);
+        });
+        
+        // Add floating animation to form elements
+        const formElements = document.querySelectorAll('.form-step');
+        formElements.forEach((el, index) => {
+            setTimeout(() => {
+                el.style.animation = `slideInLeft 0.5s ease forwards ${index * 0.1}s`;
+            }, 100);
+        });
+        
+        // Add hover effect to metric cards
+        const metricCards = document.querySelectorAll('.metric-card');
+        metricCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                const icon = this.querySelector('.metric-icon');
+                icon.style.transform = 'rotate(10deg) scale(1.1)';
+            });
+            card.addEventListener('mouseleave', function() {
+                const icon = this.querySelector('.metric-icon');
+                icon.style.transform = 'rotate(0) scale(1)';
+            });
+        });
+    });
+    
+    function confirmDelete() {
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+</script>
+{% endblock %}

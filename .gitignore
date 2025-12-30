@@ -1,1 +1,17 @@
 .venv/
+.env
+__pycache__/
+*.pyc
+instance/
+*.sqlite3
+*.db
+.env.local
+.env.*
+.DS_Store
+.vscode/
+coverage/
+*.egg-info/
+build/
+dist/
+node_modules/
+.idea/

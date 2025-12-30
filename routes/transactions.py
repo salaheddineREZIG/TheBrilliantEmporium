@@ -43,6 +43,11 @@ def index():
             Transaction.amount.ilike(search_term)
         ))
     
+    # Calculate statistics for all filtered transactions
+    all_filtered_transactions = query.all()
+    total_income = sum(float(t.amount) for t in all_filtered_transactions if t.type == TransactionType.INCOME)
+    total_expense = sum(float(t.amount) for t in all_filtered_transactions if t.type == TransactionType.EXPENSE)
+    
     # Order and paginate
     page = request.args.get('page', 1, type=int)
     per_page = 25
@@ -56,19 +61,22 @@ def index():
     accounts = Account.query.filter_by(
         user_id=current_user.id,
         is_active=True
-    ).all()
+    ).order_by(Account.name).all()
     
     categories = Category.query.filter_by(
         user_id=current_user.id,
         is_active=True
-    ).all()
+    ).order_by(Category.name).all()
     
     return render_template('transactions/index.html',
                          transactions=transactions,
                          form=form,
                          accounts=accounts,
                          categories=categories,
-                         filter_params=request.args)
+                         total_income=total_income,
+                         total_expense=total_expense,
+                         filter_params=request.args,
+                         date=date)
 
 @transactions_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -83,11 +91,11 @@ def create():
                                   is_active=True
                               ).all()]
     
-    form.category_id.choices = [(cat.id, f"{cat.icon} {cat.name}") 
-                               for cat in Category.query.filter_by(
-                                   user_id=current_user.id,
-                                   is_active=True
-                               ).all()]
+    # Determine the transaction type to use for category choices.
+    # If this is a POST, prefer the submitted value so choices match validation.
+    selected_type = request.form.get('type') if request.method == 'POST' else (form.type.data or 'expense')
+    form.type.data = selected_type
+    form.set_category_choices(selected_type)
     
     if form.validate_on_submit():
         transaction = Transaction(
@@ -198,7 +206,26 @@ def edit(transaction_id):
         flash('Transaction updated successfully!', 'success')
         return redirect(url_for('transactions.view', transaction_id=transaction_id))
     
-    return render_template('transactions/edit.html', form=form, transaction=transaction)
+    # Get similar transactions (same category or same amount range)
+    similar_transactions = Transaction.query.filter(
+        Transaction.user_id == current_user.id,
+        Transaction.id != transaction_id,
+        or_(
+            Transaction.category_id == transaction.category_id,
+            Transaction.amount.between(float(transaction.amount) * 0.9, float(transaction.amount) * 1.1)
+        )
+    ).order_by(Transaction.date.desc()).limit(5).all()
+    
+    # Calculate net change for template
+    def calculate_net_change():
+        # This will be called in template context
+        return 0.00  # Placeholder - actual calculation in JavaScript
+    
+    return render_template('transactions/edit.html', 
+                         form=form, 
+                         transaction=transaction,
+                         similar_transactions=similar_transactions,
+                         calculate_net_change=calculate_net_change)
 
 @transactions_bp.route('/<int:transaction_id>/delete', methods=['POST'])
 @login_required
@@ -220,6 +247,10 @@ def delete(transaction_id):
     db.session.delete(transaction)
     db.session.commit()
     
+    # If this was an AJAX/JSON request (fetch), return JSON for the client to handle
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.headers.get('Accept', '').lower().startswith('application/json'):
+        return jsonify({'success': True, 'message': 'Transaction deleted'})
+
     flash('Transaction deleted successfully!', 'success')
     return redirect(url_for('transactions.index'))
 

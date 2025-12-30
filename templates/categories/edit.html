@@ -1,0 +1,342 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Edit Category - The Brilliant Emporium{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="mb-4">
+                <a href="{{ url_for('categories.index') }}" class="btn btn-outline-accent btn-sm mb-3">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Categories
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-pencil-square text-accent me-2"></i>
+                    Edit Category
+                </h1>
+                <p class="text-gray">Update category details</p>
+            </div>
+            
+            <!-- Category Info -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Category Information</h6>
+                    <div class="btn-group btn-group-sm">
+                        <a href="{{ url_for('transactions.index') }}?category_id={{ category.id }}" 
+                           class="btn btn-outline-accent">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{{ url_for('categories.create') }}?duplicate={{ category.id }}" 
+                           class="btn btn-outline-accent">
+                            <i class="bi bi-copy"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <small class="text-gray d-block">Created</small>
+                            <strong>{{ category.created_at.strftime('%b %d, %Y %H:%M') }}</strong>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <small class="text-gray d-block">Transaction Count</small>
+                            <strong>{{ category.transaction_count if category.transaction_count else 0 }}</strong>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-gray d-block">Type</small>
+                            <span class="type-badge {{ category.type.value }}">
+                                {{ category.type.value|title }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <small class="text-gray d-block">Status</small>
+                            <span class="badge {{ 'bg-success' if category.is_active else 'bg-secondary' }}">
+                                {{ 'Active' if category.is_active else 'Inactive' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Category Form -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('categories.edit', category_id=category.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Category Name -->
+                            <div class="col-md-6">
+                                <label class="form-label">Category Name *</label>
+                                {{ form.name(class="form-control", placeholder="e.g., Groceries, Salary", required=True) }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Category Type -->
+                            <div class="col-md-6">
+                                <label class="form-label">Type *</label>
+                                {{ form.type(class="form-select", required=True) }}
+                                {% if form.type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.type.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Parent Category -->
+                        <div class="mt-3">
+                            <label class="form-label">Parent Category (Optional)</label>
+                            {{ form.parent_id(class="form-select") }}
+                            <div class="form-text text-gray">Make this a subcategory by selecting a parent category</div>
+                            {% if form.parent_id.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.parent_id.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Icon Selection -->
+                        <div class="mt-4">
+                            <label class="form-label">Icon</label>
+                            <div class="icon-grid">
+                                {% for icon in icons %}
+                                <div class="icon-option {% if form.icon.data == icon or (not form.icon.data and category.icon == icon) %}selected{% endif %}" 
+                                     onclick="selectIcon('{{ icon }}')">
+                                    {{ icon }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {{ form.icon(class="d-none") }}
+                            {% if form.icon.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.icon.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Color Selection -->
+                        <div class="mt-4">
+                            <label class="form-label">Color</label>
+                            <div class="d-flex align-items-center">
+                                {{ form.color(class="form-control form-control-color", type="color", required=True, style="width: 70px;") }}
+                                <div class="color-preview ms-3" id="colorPreview"></div>
+                                <div class="ms-3">
+                                    <input type="text" class="form-control form-control-sm" 
+                                           id="colorHex" placeholder="#000000" style="width: 100px;">
+                                </div>
+                            </div>
+                            {% if form.color.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.color.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Quick Colors -->
+                        <div class="mt-3">
+                            <label class="form-label text-gray">Quick Colors</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for color in quick_colors %}
+                                <button type="button" class="btn btn-sm" 
+                                        style="background-color: {{ color }}; width: 30px; height: 30px; border-radius: 6px;"
+                                        onclick="selectColor('{{ color }}')"></button>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4 pt-3 border-top border-secondary">
+                            <div class="d-flex gap-2">
+                                <a href="{{ url_for('categories.index') }}" class="btn btn-outline-accent">Cancel</a>
+                                <a href="{{ url_for('categories.create') }}?duplicate={{ category.id }}" 
+                                   class="btn btn-outline-accent">
+                                    <i class="bi bi-copy me-1"></i> Duplicate
+                                </a>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-accent">
+                                    <i class="bi bi-check-circle me-1"></i> Save Changes
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Danger Zone -->
+            <div class="card mt-4 border-danger">
+                <div class="card-header bg-danger bg-opacity-10 text-danger border-danger">
+                    <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Danger Zone</h6>
+                </div>
+                <div class="card-body">
+                    <h6 class="text-danger">Delete Category</h6>
+                    <p class="text-gray small mb-3">
+                        {% if category.transaction_count > 0 %}
+                        This category has {{ category.transaction_count }} transaction{{ 's' if category.transaction_count != 1 else '' }}.
+                        Deleting it will affect those transactions.
+                        {% else %}
+                        Deleting this category will permanently remove it.
+                        {% endif %}
+                    </p>
+                    {% if category.is_system %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-shield-exclamation me-2"></i>
+                        System categories cannot be deleted
+                    </div>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('categories.delete', category_id=category.id) }}"
+                          onsubmit="return confirm('{% if category.transaction_count > 0 %}This category has {{ category.transaction_count }} transaction{{ 's' if category.transaction_count != 1 else '' }}. Are you sure you want to delete it?{% else %}Delete this category?{% endif %}');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i> Delete Category
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Subcategories -->
+            {% if category.subcategories %}
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="bi bi-diagram-2 me-2"></i>Subcategories</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for subcat in category.subcategories %}
+                        <div class="col">
+                            <div class="card bg-dark-gray">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <span class="fs-4">{{ subcat.icon }}</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <h6 class="mb-0 me-2">{{ subcat.name }}</h6>
+                                                <span class="badge {{ 'bg-success' if subcat.type.value == 'income' else 'bg-danger' }}">
+                                                    {{ subcat.type.value|title }}
+                                                </span>
+                                            </div>
+                                            <div class="text-gray small">
+                                                {{ subcat.transaction_count if subcat.transaction_count else 0 }} transactions
+                                            </div>
+                                        </div>
+                                        <a href="{{ url_for('categories.edit', category_id=subcat.id) }}" 
+                                           class="btn btn-sm btn-outline-accent">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const iconInput = document.getElementById('{{ form.icon.id }}');
+        const colorInput = document.getElementById('{{ form.color.id }}');
+        const colorHex = document.getElementById('colorHex');
+        const colorPreview = document.getElementById('colorPreview');
+        
+        // Icon selection (robust: works for <select> or hidden input fallback)
+        window.selectIcon = function(icon) {
+            const selectEl = document.getElementById('{{ form.icon.id }}');
+
+            if (selectEl) {
+                // ensure option exists
+                let exists = Array.from(selectEl.options).some(o => o.value === icon);
+                if (!exists) {
+                    const opt = new Option(icon, icon);
+                    selectEl.add(opt);
+                }
+                selectEl.value = icon;
+                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            } else {
+                const hiddenFallback = document.querySelector('input[name="{{ form.icon.name }}"]');
+                if (hiddenFallback) hiddenFallback.value = icon;
+            }
+
+            document.querySelectorAll('.icon-option').forEach(option => {
+                option.classList.toggle('selected', option.textContent.trim() === icon);
+            });
+        }
+        
+        // Color selection from quick colors
+        window.selectColor = function(color) {
+            colorInput.value = color;
+            updateColorPreview();
+        }
+        
+        // Update color preview and hex input
+        function updateColorPreview() {
+            colorPreview.style.backgroundColor = colorInput.value;
+            colorHex.value = colorInput.value.toUpperCase();
+        }
+        
+        // Hex input change
+        colorHex.addEventListener('input', function() {
+            const hex = this.value.startsWith('#') ? this.value : '#' + this.value;
+            if (/^#[0-9A-F]{6}$/i.test(hex)) {
+                colorInput.value = hex;
+                updateColorPreview();
+            }
+        });
+        
+        colorInput.addEventListener('input', updateColorPreview);
+        
+        // Update parent category options based on type
+        const typeSelect = document.getElementById('{{ form.type.id }}');
+        const parentSelect = document.getElementById('{{ form.parent_id.id }}');
+        
+        function updateParentOptions() {
+            const selectedType = typeSelect.value;
+            
+            // Filter parent options by type
+            Array.from(parentSelect.options).forEach(option => {
+                if (option.value === '' || option.value === '0') return; // Keep the "None" option
+                
+                // In a real app, you would fetch filtered options via AJAX
+                // For now, we'll just enable/disable based on type selection
+                option.disabled = false;
+            });
+        }
+        
+        typeSelect.addEventListener('change', updateParentOptions);
+        
+        // Initialize
+        updateColorPreview();
+        updateParentOptions();
+        
+        // Set initial icon selection
+        {% if form.icon.data %}
+        selectIcon('{{ form.icon.data }}');
+        {% elif category.icon %}
+        selectIcon('{{ category.icon }}');
+        {% endif %}
+    });
+</script>
+{% endblock %}

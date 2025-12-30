@@ -1,0 +1,473 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Transfers - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .transfer-card {
+        border-left: 4px solid var(--info);
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    
+    .transfer-card.animate {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .transfer-card:hover {
+        transform: translateY(-5px) scale(1.01);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        background: linear-gradient(90deg, rgba(13, 110, 253, 0.1), transparent);
+    }
+    
+    .summary-card {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.5s ease;
+    }
+    
+    .summary-card.animate {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover .summary-icon {
+        transform: rotate(10deg) scale(1.1);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    }
+    
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.8s ease forwards;
+    }
+    
+    .slide-in-left {
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: slideInLeft 0.5s ease forwards;
+    }
+    
+    .slide-in-right {
+        opacity: 0;
+        transform: translateX(20px);
+        animation: slideInRight 0.5s ease forwards;
+    }
+    
+    .pulse-on-hover:hover {
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    .transfer-flow {
+        display: inline-flex;
+        align-items: center;
+        margin: 0 10px;
+        color: var(--info);
+    }
+    
+    .transfer-flow i {
+        animation: flowArrow 1s ease-in-out infinite;
+    }
+    
+    @keyframes flowArrow {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(5px); }
+    }
+    
+    .empty-state-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .badge-pill {
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.75rem;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+        <div>
+            <h1 class="h2 fw-bold mb-0"><i class="bi bi-arrow-left-right text-accent me-2"></i>Transfers</h1>
+            <p class="text-gray mb-0">Move money between your accounts</p>
+        </div>
+        <a href="{{ url_for('transfers.create') }}" class="btn btn-accent hover-lift pulse-on-hover">
+            <i class="bi bi-plus-circle me-1"></i> New Transfer
+        </a>
+    </div>
+    
+    <!-- Quick Stats -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card summary-card" data-delay="0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-arrow-left-right text-accent fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Total Transfers</div>
+                            <h3 class="mb-0 counter" data-target="{{ transfers.total if transfers else 0 }}">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card" data-delay="100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-calendar-month text-info fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">This Month</div>
+                            <h3 class="mb-0 counter" data-target="{{ transfers.items|selectattr('date', 'month_equal', current_month)|list|length }}">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card summary-card" data-delay="200">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-currency-dollar text-success fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Total Amount</div>
+                            <h3 class="mb-0 counter" data-target="{{ transfers.items|sum(attribute='amount') if transfers.items else 0.00 }}">
+                                $0.00
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Transfers List -->
+    <div class="card fade-in">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Transfer History</h5>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-accent dropdown-toggle hover-lift" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-filter me-1"></i> Filter
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item hover-lift" href="?filter=month">This Month</a></li>
+                    <li><a class="dropdown-item hover-lift" href="?filter=year">This Year</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item hover-lift" href="{{ url_for('transfers.index') }}">Show All</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if transfers.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Transfer</th>
+                            <th>Amount</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transfer in transfers.items %}
+                        <tr class="transfer-card" data-delay="{{ loop.index * 50 }}">
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <strong>{{ transfer.date.strftime('%b %d') }}</strong>
+                                    <small class="text-gray">{{ transfer.date.strftime('%Y') }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="text-start">
+                                        <small class="text-gray d-block mb-1">From</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-wallet2 text-accent me-2"></i>
+                                            <span>{{ transfer.from_account.name }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="transfer-flow">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </div>
+                                    <div class="text-end">
+                                        <small class="text-gray d-block mb-1">To</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-wallet2 text-success me-2"></i>
+                                            <span>{{ transfer.to_account.name }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-info">
+                                    <strong class="fs-5">${{ "%.2f"|format(transfer.amount) }}</strong>
+                                    <div class="text-gray small">{{ transfer.from_account.currency }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-gray">{{ transfer.description or 'No description' }}</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-info badge-pill">
+                                    <i class="bi bi-check-circle me-1"></i> Completed
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-outline-danger hover-lift" 
+                                            onclick="confirmDelete({{ transfer.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if transfers.pages > 1 %}
+            <nav aria-label="Transfer pagination" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if transfers.has_prev %}
+                    <li class="page-item">
+                        <a class="page-link hover-lift" href="{{ url_for('transfers.index', page=transfers.prev_num) }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in transfers.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == transfers.page %}active{% endif %}">
+                                <a class="page-link hover-lift" href="{{ url_for('transfers.index', page=page_num) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">...</span></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if transfers.has_next %}
+                    <li class="page-item">
+                        <a class="page-link hover-lift" href="{{ url_for('transfers.index', page=transfers.next_num) }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5 fade-in">
+                <i class="bi bi-arrow-left-right text-gray fs-1 mb-3 empty-state-icon" style="font-size: 4rem!important;"></i>
+                <h5 class="text-light">No Transfers Yet</h5>
+                <p class="text-gray">Transfer money between your accounts to get started</p>
+                <a href="{{ url_for('transfers.create') }}" class="btn btn-accent hover-lift pulse-on-hover mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> Create Transfer
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-gray border-secondary">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-light">Delete Transfer</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="bi bi-exclamation-triangle text-danger fs-1"></i>
+                </div>
+                <p class="text-light text-center">Are you sure you want to delete this transfer?</p>
+                <p class="text-gray text-center small">This action will reverse the transfer and update account balances</p>
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <button type="button" class="btn btn-outline-accent hover-lift" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    <button type="submit" class="btn btn-danger hover-lift">Delete Transfer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate summary cards
+        const summaryCards = document.querySelectorAll('.summary-card');
+        summaryCards.forEach((card, index) => {
+            const delay = parseInt(card.getAttribute('data-delay')) || 0;
+            setTimeout(() => {
+                card.style.animationDelay = `${delay}ms`;
+                card.classList.add('animate');
+            }, 100);
+        });
+        
+        // Animate transfer cards
+        const transferCards = document.querySelectorAll('.transfer-card');
+        transferCards.forEach((card, index) => {
+            const delay = parseInt(card.getAttribute('data-delay')) || index * 50;
+            setTimeout(() => {
+                card.style.animationDelay = `${delay}ms`;
+                card.classList.add('animate');
+            }, 300);
+        });
+        
+        // Start counter animations
+        animateCounters();
+        
+        // Add hover effect to pagination
+        const pageLinks = document.querySelectorAll('.page-link');
+        pageLinks.forEach(link => {
+            link.classList.add('hover-lift');
+        });
+    });
+    
+    // Helper to retrieve CSRF token
+    function getCsrfToken() {
+        const match = document.cookie.match(/(^|;)\s*csrf_token=([^;]+)/);
+        if (match) return decodeURIComponent(match[2]);
+        const el = document.querySelector('input[name="csrf_token"]');
+        if (el) return el.value;
+        return '';
+    }
+    
+    // Animate counters
+    function animateCounters() {
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            const target = parseFloat(counter.getAttribute('data-target'));
+            if (isNaN(target)) return;
+            
+            const isCurrency = counter.textContent.includes('$');
+            const duration = 1500;
+            const increment = target / (duration / 16);
+            let current = 0;
+            
+            const updateCounter = () => {
+                current += increment;
+                if (current >= target) {
+                    if (isCurrency) {
+                        counter.textContent = '$' + target.toFixed(2);
+                    } else {
+                        counter.textContent = Math.round(target);
+                    }
+                } else {
+                    if (isCurrency) {
+                        counter.textContent = '$' + current.toFixed(2);
+                    } else {
+                        counter.textContent = Math.round(current);
+                    }
+                    requestAnimationFrame(updateCounter);
+                }
+            };
+            
+            requestAnimationFrame(updateCounter);
+        });
+    }
+    
+    function confirmDelete(transferId) {
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/transfers/${transferId}/delete`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+    
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Escape to close modal
+        if (e.key === 'Escape') {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+            if (modal) modal.hide();
+        }
+        
+        // Ctrl+Shift+N for new transfer
+        if (e.ctrlKey && e.shiftKey && e.key === 'N') {
+            e.preventDefault();
+            window.location.href = '{{ url_for("transfers.create") }}';
+        }
+    });
+</script>
+{% endblock %}

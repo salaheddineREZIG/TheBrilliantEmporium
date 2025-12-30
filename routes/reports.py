@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, jsonify, request
+from flask import Blueprint, render_template, jsonify, request, url_for
 from flask_login import login_required, current_user
 from datetime import datetime, date, timedelta
 from sqlalchemy import func, extract, and_, or_
@@ -12,7 +12,15 @@ reports_bp = Blueprint('reports', __name__)
 @login_required
 def index():
     """Reports dashboard"""
-    return render_template('reports/index.html')
+    # Provide endpoint URLs to the client-side code so JS can build requests safely
+    endpoints = {
+        'spending_by_category': url_for('reports.spending_by_category'),
+        'income_vs_expense': url_for('reports.income_vs_expense'),
+        'account_balance_history': url_for('reports.account_balance_history'),
+        'budget_vs_actual': url_for('reports.budget_vs_actual'),
+        'export_full_report': url_for('reports.export_full_report')
+    }
+    return render_template('reports/index.html', endpoints=endpoints)
 
 @reports_bp.route('/spending-by-category')
 @login_required

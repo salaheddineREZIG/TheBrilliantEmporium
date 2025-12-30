@@ -1,0 +1,254 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}{{ account.name }} - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .transaction-income {
+        border-left: 4px solid var(--success);
+        background: linear-gradient(90deg, rgba(0, 255, 157, 0.1) 0%, transparent 100%);
+    }
+    
+    .transaction-expense {
+        border-left: 4px solid var(--error);
+        background: linear-gradient(90deg, rgba(255, 107, 107, 0.1) 0%, transparent 100%);
+    }
+    
+    .account-header-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .account-header-icon.checking { background-color: rgba(0, 123, 255, 0.2); color: #0d6efd; }
+    .account-header-icon.savings { background-color: rgba(40, 167, 69, 0.2); color: #28a745; }
+    .account-header-icon.credit_card { background-color: rgba(255, 193, 7, 0.2); color: #ffc107; }
+    .account-header-icon.cash { background-color: rgba(23, 162, 184, 0.2); color: #17a2b8; }
+    .account-header-icon.wallet { background-color: rgba(111, 66, 193, 0.2); color: #6f42c1; }
+    .account-header-icon.investment { background-color: rgba(220, 53, 69, 0.2); color: #dc3545; }
+    .account-header-icon.loan { background-color: rgba(253, 126, 20, 0.2); color: #fd7e14; }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <!-- Account Header -->
+    <div class="mb-4">
+        <a href="{{ url_for('accounts.index') }}" class="btn btn-outline-accent btn-sm mb-3">
+            <i class="bi bi-arrow-left me-1"></i> Back to Accounts
+        </a>
+        
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="account-header-icon me-3 {{ account.type.value }}">
+                        <i class="bi bi-{{ 'bank' if account.type.value == 'checking' else 'piggy-bank' if account.type.value == 'savings' else 'credit-card' if account.type.value == 'credit_card' else 'cash' if account.type.value == 'cash' else 'wallet' if account.type.value == 'wallet' else 'graph-up' if account.type.value == 'investment' else 'cash-stack' }}"></i>
+                    </div>
+                    <div>
+                        <h1 class="h2 fw-bold mb-0">{{ account.name }}</h1>
+                        <div class="d-flex align-items-center flex-wrap gap-2">
+                            <span class="badge bg-dark">{{ account.type.value|replace('_', ' ')|title }}</span>
+                            <span class="text-gray">{{ account.currency }} •</span>
+                            <span class="{{ 'text-success' if account.is_active else 'text-secondary' }}">
+                                {{ 'Active' if account.is_active else 'Archived' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-end">
+                <div class="fs-1 fw-bold mb-1 {{ 'text-success' if account.current_balance >= 0 else 'text-danger' }}">
+                    {{ account.currency }} {{ "%.2f"|format(account.current_balance) }}
+                </div>
+                <div class="text-gray">Current Balance</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-gray small">Initial Balance</div>
+                    <h5 class="mb-0">{{ account.currency }} {{ "%.2f"|format(account.initial_balance) }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-gray small">This Month Income</div>
+                    <h5 class="mb-0 text-success">+{{ account.currency }} {{ "%.2f"|format(monthly_income) }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-gray small">This Month Expense</div>
+                    <h5 class="mb-0 text-danger">-{{ account.currency }} {{ "%.2f"|format(monthly_expense) }}</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="text-gray small">Net Change</div>
+                    <h5 class="mb-0 {{ 'text-success' if monthly_income - monthly_expense >= 0 else 'text-danger' }}">
+                        {{ account.currency }} {{ "%.2f"|format(monthly_income - monthly_expense) }}
+                    </h5>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Account Actions -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{{ url_for('transactions.create') }}?account_id={{ account.id }}" class="btn btn-accent">
+            <i class="bi bi-plus-circle me-1"></i> Add Transaction
+        </a>
+        <a href="{{ url_for('accounts.edit', account_id=account.id) }}" class="btn btn-outline-accent">
+            <i class="bi bi-pencil me-1"></i> Edit Account
+        </a>
+        <a href="{{ url_for('transfers.create') }}?from_account_id={{ account.id }}" class="btn btn-outline-accent">
+            <i class="bi bi-arrow-left-right me-1"></i> Transfer
+        </a>
+        <div class="dropdown">
+            <button class="btn btn-outline-accent dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-three-dots"></i>
+            </button>
+            <ul class="dropdown-menu">
+                {% if account.is_active %}
+                <li>
+                    <form method="POST" action="{{ url_for('accounts.delete', account_id=account.id) }}" class="dropdown-item p-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="dropdown-item text-danger" onclick="return confirm('Archive this account?')">
+                            <i class="bi bi-archive me-2"></i> Archive Account
+                        </button>
+                    </form>
+                </li>
+                {% else %}
+                <li>
+                    <form method="POST" action="{{ url_for('accounts.restore', account_id=account.id) }}" class="dropdown-item p-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="dropdown-item text-success">
+                            <i class="bi bi-arrow-clockwise me-2"></i> Restore Account
+                        </button>
+                    </form>
+                </li>
+                {% endif %}
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#"><i class="bi bi-download me-2"></i> Export Transactions</a></li>
+                <li><a class="dropdown-item" href="#"><i class="bi bi-printer me-2"></i> Print Statement</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Recent Transactions -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Recent Transactions</h5>
+            <a href="{{ url_for('transactions.index') }}?account_id={{ account.id }}" class="btn btn-sm btn-outline-accent">
+                View All
+            </a>
+        </div>
+        <div class="card-body p-0">
+            {% if transactions.items %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th>Amount</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in transactions.items %}
+                        <tr class="{{ 'transaction-income' if transaction.type.value == 'income' else 'transaction-expense' }}">
+                            <td>{{ transaction.date.strftime('%b %d, %Y') }}</td>
+                            <td>{{ transaction.description or 'No description' }}</td>
+                            <td>
+                                {% if transaction.category %}
+                                <span class="badge bg-dark">{{ transaction.category.name }}</span>
+                                {% else %}
+                                <span class="text-gray">Uncategorized</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{ 'bg-success' if transaction.type.value == 'income' else 'bg-danger' }}">
+                                    {{ transaction.type.value|title }}
+                                </span>
+                            </td>
+                            <td class="{{ 'text-success' if transaction.type.value == 'income' else 'text-danger' }}">
+                                {{ '$%.2f'|format(transaction.amount) }}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm float-end">
+                                    <a href="{{ url_for('transactions.view', transaction_id=transaction.id) }}" class="btn btn-outline-accent" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('transactions.edit', transaction_id=transaction.id) }}" class="btn btn-outline-accent" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if transactions.pages > 1 %}
+            <div class="card-footer">
+                <nav aria-label="Transaction pagination">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if transactions.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('accounts.view', account_id=account.id, page=transactions.prev_num) }}">Previous</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in transactions.iter_pages(left_edge=2, left_current=2, right_current=2, right_edge=2) %}
+                            {% if page_num %}
+                                <li class="page-item {% if page_num == transactions.page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('accounts.view', account_id=account.id, page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled"><span class="page-link">...</span></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if transactions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('accounts.view', account_id=account.id, page=transactions.next_num) }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-arrow-left-right text-gray fs-1 mb-3"></i>
+                <h5 class="text-light">No Transactions Yet</h5>
+                <p class="text-gray">Start by adding your first transaction to this account</p>
+                <a href="{{ url_for('transactions.create') }}?account_id={{ account.id }}" class="btn btn-accent">
+                    <i class="bi bi-plus-circle me-1"></i> Add Transaction
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,598 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Accounts - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .account-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid transparent;
+        transform: translateY(0);
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .account-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        border-left-color: var(--accent);
+    }
+    
+    .account-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .account-card:hover .account-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .account-icon.checking { 
+        background-color: rgba(0, 123, 255, 0.2);
+        color: #0d6efd;
+    }
+    .account-icon.savings { 
+        background-color: rgba(40, 167, 69, 0.2);
+        color: #28a745;
+    }
+    .account-icon.credit_card { 
+        background-color: rgba(255, 193, 7, 0.2);
+        color: #ffc107;
+    }
+    .account-icon.cash { 
+        background-color: rgba(23, 162, 184, 0.2);
+        color: #17a2b8;
+    }
+    .account-icon.wallet { 
+        background-color: rgba(111, 66, 193, 0.2);
+        color: #6f42c1;
+    }
+    .account-icon.investment { 
+        background-color: rgba(220, 53, 69, 0.2);
+        color: #dc3545;
+    }
+    .account-icon.loan { 
+        background-color: rgba(253, 126, 20, 0.2);
+        color: #fd7e14;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Stagger animation for cards */
+    .account-card:nth-child(1) { animation-delay: 0.1s; }
+    .account-card:nth-child(2) { animation-delay: 0.2s; }
+    .account-card:nth-child(3) { animation-delay: 0.3s; }
+    .account-card:nth-child(4) { animation-delay: 0.4s; }
+    .account-card:nth-child(5) { animation-delay: 0.5s; }
+    .account-card:nth-child(6) { animation-delay: 0.6s; }
+    
+    /* Search bar styles */
+    .search-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    .search-input {
+        padding-left: 40px;
+        background-color: var(--medium-gray);
+        border: 1px solid var(--light-gray);
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        background-color: var(--medium-gray);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        z-index: 10;
+    }
+    
+    /* Card header with search */
+    .card-header-with-search {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+    
+    .title-container {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .search-filter-wrapper {
+        flex: 0 0 400px;
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header-with-search {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-filter-wrapper {
+            flex: 0 0 auto;
+            width: 100%;
+            margin-top: 15px;
+            flex-direction: column;
+        }
+        
+        .title-container {
+            width: 100%;
+        }
+    }
+    
+    /* Empty state animation */
+    .empty-state-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+    
+    /* Button hover effects */
+    .btn-hover-effect {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .btn-hover-effect:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    
+    /* Table row hover effects */
+    .account-row {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .account-row:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        transform: translateX(5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .account-row:hover .account-icon {
+        transform: scale(1.1);
+    }
+    
+    /* Status badge hover */
+    .account-status-badge {
+        transition: all 0.3s ease;
+    }
+    
+    .account-row:hover .account-status-badge {
+        transform: scale(1.1);
+    }
+    
+    /* Balance color animation */
+    .balance-positive {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .balance-positive::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.1), transparent);
+        transition: all 0.5s ease;
+    }
+    
+    .account-row:hover .balance-positive::after {
+        left: 100%;
+    }
+    
+    .balance-negative {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .balance-negative::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 107, 107, 0.1), transparent);
+        transition: all 0.5s ease;
+    }
+    
+    .account-row:hover .balance-negative::after {
+        left: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-0"><i class="bi bi-wallet2 text-accent me-2"></i>Accounts</h1>
+            <p class="text-gray mb-0">Manage all your financial accounts</p>
+        </div>
+        <a href="{{ url_for('accounts.create') }}" class="btn btn-accent btn-hover-effect">
+            <i class="bi bi-plus-circle me-1"></i> New Account
+        </a>
+    </div>
+    
+    <!-- Total Balance Summary -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 account-card" style="border-left-color: #0d6efd;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="account-icon checking me-3">
+                            <i class="bi bi-bank"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Total Balance</div>
+                            <h3 class="mb-0">${{ "%.2f"|format(total_balance) }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 account-card" style="border-left-color: #28a745;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="account-icon savings me-3">
+                            <i class="bi bi-piggy-bank"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Active Accounts</div>
+                            <h3 class="mb-0">{{ accounts|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 account-card" style="border-left-color: #ffc107;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="account-icon credit_card me-3">
+                            <i class="bi bi-credit-card"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">This Month</div>
+                            <h3 class="mb-0 text-success">+${{ "%.2f"|format(monthly_change) if monthly_change else "0.00" }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 account-card" style="border-left-color: #dc3545;">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="account-icon investment me-3">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Net Worth</div>
+                            <h3 class="mb-0">${{ "%.2f"|format(total_balance) }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Accounts List -->
+    <div class="card">
+        <div class="card-header card-header-with-search border-0">
+            <div class="title-container">
+                <h5 class="mb-0">Your Accounts</h5>
+            </div>
+            <div class="search-filter-wrapper">
+                <div class="search-container">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control search-input" id="accountSearch" placeholder="Search accounts...">
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-accent dropdown-toggle btn-hover-effect" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-filter me-1"></i> Filter
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('accounts.index') }}">All Accounts</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('accounts.index') }}?active=true">Active Only</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('accounts.index') }}?active=false">Archived Only</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% for type in account_types %}
+                        <li><a class="dropdown-item" href="{{ url_for('accounts.index') }}?type={{ type.value }}">{{ type.value|replace('_', ' ')|title }}</a></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if accounts %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th>Type</th>
+                            <th>Balance</th>
+                            <th>Currency</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsTableBody">
+                        {% for account in accounts %}
+                        <tr class="account-row account-item" 
+                            data-name="{{ account.name|lower }}"
+                            data-type="{{ account.type.value|replace('_', ' ')|title|lower }}"
+                            data-currency="{{ account.currency|lower }}"
+                            data-status="{{ 'active' if account.is_active else 'archived' }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="account-icon me-3 {{ account.type.value }}">
+                                        <i class="bi bi-{{ 
+                                            'bank' if account.type.value == 'checking' 
+                                            else 'piggy-bank' if account.type.value == 'savings' 
+                                            else 'credit-card' if account.type.value == 'credit_card' 
+                                            else 'cash' if account.type.value == 'cash' 
+                                            else 'wallet' if account.type.value == 'wallet' 
+                                            else 'graph-up' if account.type.value == 'investment' 
+                                            else 'cash-stack' 
+                                        }}"></i>
+                                    </div>
+                                    <div>
+                                        <strong class="account-name">{{ account.name }}</strong>
+                                        <div class="text-gray small">{{ account.created_at.strftime('%b %d, %Y') }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark">{{ account.type.value|replace('_', ' ')|title }}</span>
+                            </td>
+                            <td>
+                                <strong class="{{ 'text-success balance-positive' if account.current_balance >= 0 else 'text-danger balance-negative' }}">
+                                    {{ account.currency }} {{ "%.2f"|format(account.current_balance) }}
+                                </strong>
+                            </td>
+                            <td>
+                                <span class="badge bg-dark">{{ account.currency }}</span>
+                            </td>
+                            <td>
+                                <span class="account-status-badge badge {{ 'bg-success' if account.is_active else 'bg-secondary' }}">
+                                    {{ 'Active' if account.is_active else 'Archived' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm float-end">
+                                    <a href="{{ url_for('accounts.view', account_id=account.id) }}" class="btn btn-outline-accent btn-hover-effect" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('accounts.edit', account_id=account.id) }}" class="btn btn-outline-accent btn-hover-effect" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% if account.is_active %}
+                                    <form method="POST" action="{{ url_for('accounts.delete', account_id=account.id) }}" class="d-inline" onsubmit="return confirm('Archive this account?');">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-danger btn-hover-effect" title="Archive">
+                                            <i class="bi bi-archive"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('accounts.restore', account_id=account.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-outline-success btn-hover-effect" title="Restore">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty search state (hidden by default) -->
+            <div id="noResults" class="text-center py-5" style="display: none;">
+                <div class="mb-4">
+                    <i class="bi bi-search text-gray fs-1 mb-3"></i>
+                </div>
+                <h5 class="text-light">No Accounts Found</h5>
+                <p class="text-gray mb-4">No accounts match your search criteria</p>
+                <button class="btn btn-outline-accent btn-hover-effect" onclick="clearSearch()">
+                    <i class="bi bi-x me-1"></i> Clear Search
+                </button>
+            </div>
+            
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-4">
+                    <i class="bi bi-wallet2 text-gray fs-1 mb-3 empty-state-icon"></i>
+                </div>
+                <h5 class="text-light">No Accounts Yet</h5>
+                <p class="text-gray mb-4">Get started by adding your first account</p>
+                <a href="{{ url_for('accounts.create') }}" class="btn btn-accent btn-hover-effect">
+                    <i class="bi bi-plus-circle me-1"></i> Create Account
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('accountSearch');
+        const accountRows = document.querySelectorAll('.account-item');
+        const noResults = document.getElementById('noResults');
+        const accountsTable = document.querySelector('.table-responsive');
+        
+        // Search functionality
+        function performSearch() {
+            const searchTerm = searchInput.value.toLowerCase();
+            let hasResults = false;
+            
+            accountRows.forEach(row => {
+                const name = row.getAttribute('data-name');
+                const type = row.getAttribute('data-type');
+                const currency = row.getAttribute('data-currency');
+                const status = row.getAttribute('data-status');
+                
+                if (name.includes(searchTerm) || 
+                    type.includes(searchTerm) || 
+                    currency.includes(searchTerm) || 
+                    status.includes(searchTerm)) {
+                    row.style.display = '';
+                    hasResults = true;
+                    
+                    // Add fade in animation
+                    row.style.animation = 'fadeInUp 0.3s ease-out';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Show/hide empty state
+            if (searchTerm && !hasResults) {
+                if (accountsTable) accountsTable.style.display = 'none';
+                if (noResults) noResults.style.display = 'block';
+            } else {
+                if (accountsTable) accountsTable.style.display = '';
+                if (noResults) noResults.style.display = 'none';
+            }
+        }
+        
+        // Clear search function
+        window.clearSearch = function() {
+            searchInput.value = '';
+            performSearch();
+        }
+        
+        // Add event listener for search
+        searchInput.addEventListener('input', performSearch);
+        
+        // Add keyboard shortcut for search (Ctrl/Cmd + F)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+        
+        // Add filter from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const filterType = urlParams.get('type');
+        const filterActive = urlParams.get('active');
+        
+        if (filterType || filterActive) {
+            let filterText = '';
+            if (filterType) {
+                filterText = filterType.replace('_', ' ');
+            }
+            if (filterActive === 'true') {
+                filterText += ' active';
+            } else if (filterActive === 'false') {
+                filterText += ' archived';
+            }
+            searchInput.value = filterText;
+            performSearch();
+        }
+        
+        // Add hover effect to all rows
+        accountRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.zIndex = '10';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.zIndex = '1';
+            });
+        });
+        
+        // Add click animation to buttons
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (this.type === 'submit') return; // Don't animate form submissions
+                
+                // Create ripple effect
+                const ripple = document.createElement('span');
+                const rect = this.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const x = e.clientX - rect.left - size / 2;
+                const y = e.clientY - rect.top - size / 2;
+                
+                ripple.style.cssText = `
+                    position: absolute;
+                    border-radius: 50%;
+                    background: rgba(255, 255, 255, 0.3);
+                    transform: scale(0);
+                    animation: ripple 0.6s linear;
+                    width: ${size}px;
+                    height: ${size}px;
+                    top: ${y}px;
+                    left: ${x}px;
+                `;
+                
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+        
+        // Add CSS for ripple effect
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ripple {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+            .btn {
+                position: relative;
+                overflow: hidden;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+{% endblock %}

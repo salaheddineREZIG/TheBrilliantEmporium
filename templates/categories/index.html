@@ -1,0 +1,559 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Categories - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .category-card {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-left: 4px solid transparent;
+        transform: translateY(0);
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    .category-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+        border-left-color: var(--accent);
+    }
+    
+    .category-icon {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.8rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .category-card:hover .category-icon {
+        transform: scale(1.1) rotate(5deg);
+    }
+    
+    .type-badge {
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .type-badge.expense {
+        background-color: rgba(255, 107, 107, 0.2);
+        color: var(--error);
+    }
+    
+    .type-badge.income {
+        background-color: rgba(0, 255, 157, 0.2);
+        color: var(--success);
+    }
+    
+    .category-card:hover .type-badge {
+        transform: scale(1.05);
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Stagger animation for cards */
+    .category-card:nth-child(1) { animation-delay: 0.1s; }
+    .category-card:nth-child(2) { animation-delay: 0.2s; }
+    .category-card:nth-child(3) { animation-delay: 0.3s; }
+    .category-card:nth-child(4) { animation-delay: 0.4s; }
+    .category-card:nth-child(5) { animation-delay: 0.5s; }
+    .category-card:nth-child(6) { animation-delay: 0.6s; }
+    
+    /* Search bar styles */
+    .search-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    .search-input {
+        padding-left: 40px;
+        background-color: var(--medium-gray);
+        border: 1px solid var(--light-gray);
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        background-color: var(--medium-gray);
+        border-color: var(--accent);
+        box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.1);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        z-index: 10;
+    }
+    
+    /* Card header with search */
+    .card-header-with-search {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+    }
+    
+    .tabs-container {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .search-wrapper {
+        flex: 0 0 300px;
+        margin-top: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .card-header-with-search {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .search-wrapper {
+            flex: 0 0 auto;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .tabs-container {
+            width: 100%;
+        }
+    }
+    
+    /* Empty state animation */
+    .empty-state-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+        50% {
+            transform: translateY(-10px);
+        }
+    }
+    
+    /* Button hover effects */
+    .btn-hover-effect {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .btn-hover-effect:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 fw-bold mb-0"><i class="bi bi-tags text-accent me-2"></i>Categories</h1>
+            <p class="text-gray mb-0">Organize your transactions with categories</p>
+        </div>
+        <a href="{{ url_for('categories.create') }}" class="btn btn-accent btn-hover-effect">
+            <i class="bi bi-plus-circle me-1"></i> New Category
+        </a>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card h-100 category-card" style="border-left-color: var(--error);">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-dark-gray rounded p-2 me-3">
+                            <i class="bi bi-arrow-up-right text-danger fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Expense Categories</div>
+                            <h3 class="mb-0">{{ expense_categories|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 category-card" style="border-left-color: var(--success);">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-dark-gray rounded p-2 me-3">
+                            <i class="bi bi-arrow-down-left text-success fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Income Categories</div>
+                            <h3 class="mb-0">{{ income_categories|length }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 category-card" style="border-left-color: var(--accent);">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-dark-gray rounded p-2 me-3">
+                            <i class="bi bi-layers text-accent fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Total Categories</div>
+                            <h3 class="mb-0">{{ (expense_categories|length) + (income_categories|length) }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card h-100 category-card" style="border-left-color: var(--warning);">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-dark-gray rounded p-2 me-3">
+                            <i class="bi bi-receipt text-warning fs-5"></i>
+                        </div>
+                        <div>
+                            <div class="text-gray small">Total Transactions</div>
+                            <h3 class="mb-0">{{ expense_categories|sum(attribute='transaction_count') + income_categories|sum(attribute='transaction_count') }}</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Categories Tabs with Search -->
+    <div class="card">
+        <div class="card-header card-header-with-search border-0">
+            <div class="tabs-container">
+                <ul class="nav nav-tabs border-0" id="categoryTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active btn-hover-effect" id="expense-tab" data-bs-toggle="tab" data-bs-target="#expense" type="button">
+                            <i class="bi bi-arrow-up-right text-danger me-2"></i>Expense Categories
+                            <span class="badge bg-danger ms-2">{{ expense_categories|length }}</span>
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-hover-effect" id="income-tab" data-bs-toggle="tab" data-bs-target="#income" type="button">
+                            <i class="bi bi-arrow-down-left text-success me-2"></i>Income Categories
+                            <span class="badge bg-success ms-2">{{ income_categories|length }}</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="search-wrapper">
+                <div class="search-container">
+                    <i class="bi bi-search search-icon"></i>
+                    <input type="text" class="form-control search-input" id="categorySearch" placeholder="Search categories...">
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="tab-content" id="categoryTabsContent">
+                <!-- Expense Categories -->
+                <div class="tab-pane fade show active" id="expense" role="tabpanel">
+                    {% if expense_categories %}
+                    <div class="row g-4" id="expenseCategoriesContainer">
+                        {% for category in expense_categories %}
+                        <div class="col-md-6 col-lg-4 category-item" 
+                             data-name="{{ category.name|lower }}" 
+                             data-description="{{ category.parent.name|lower if category.parent else '' }}">
+                            <div class="card category-card h-100" style="border-left-color: {{ category.color }};">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="category-icon me-3" style="background-color: {{ category.color }}20;">
+                                            <span style="color: {{ category.color }};">{{ category.icon }}</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <h5 class="mb-0 me-2">{{ category.name }}</h5>
+                                                {% if category.is_system %}
+                                                <span class="badge bg-dark text-accent">System</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="type-badge expense me-2">Expense</span>
+                                                {% if category.parent %}
+                                                <span class="text-gray">
+                                                    <i class="bi bi-diagram-2 me-1"></i> {{ category.parent.name }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center text-gray small mb-1">
+                                            <i class="bi bi-receipt me-2"></i>
+                                            <span>{{ category.transaction_count if category.transaction_count else 0 }} transaction{{ 's' if category.transaction_count != 1 else '' }}</span>
+                                        </div>
+                                        {% if category.subcategories %}
+                                        <div class="d-flex align-items-center text-gray small">
+                                            <i class="bi bi-layers me-2"></i>
+                                            <span>{{ category.subcategories|length }} subcategor{{ 'ies' if category.subcategories|length != 1 else 'y' }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
+                                        <span class="text-gray small">Color: <span style="color: {{ category.color }};">{{ category.color }}</span></span>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if not category.is_system %}
+                                            <a href="{{ url_for('categories.edit', category_id=category.id) }}" 
+                                               class="btn btn-outline-accent btn-hover-effect" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('transactions.index') }}?category_id={{ category.id }}" 
+                                               class="btn btn-outline-accent btn-hover-effect" title="View Transactions">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if not category.is_system %}
+                                            <form method="POST" action="{{ url_for('categories.delete', category_id=category.id) }}" 
+                                                  class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-hover-effect" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-arrow-up-right text-gray fs-1 mb-3 empty-state-icon"></i>
+                        </div>
+                        <h5 class="text-light">No Expense Categories</h5>
+                        <p class="text-gray mb-4">Create categories to organize your expenses</p>
+                        <a href="{{ url_for('categories.create') }}?type=expense" class="btn btn-accent btn-hover-effect">
+                            <i class="bi bi-plus-circle me-1"></i> Create Expense Category
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Income Categories -->
+                <div class="tab-pane fade" id="income" role="tabpanel">
+                    {% if income_categories %}
+                    <div class="row g-4" id="incomeCategoriesContainer">
+                        {% for category in income_categories %}
+                        <div class="col-md-6 col-lg-4 category-item" 
+                             data-name="{{ category.name|lower }}" 
+                             data-description="{{ category.parent.name|lower if category.parent else '' }}">
+                            <div class="card category-card h-100" style="border-left-color: {{ category.color }};">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-start mb-3">
+                                        <div class="category-icon me-3" style="background-color: {{ category.color }}20;">
+                                            <span style="color: {{ category.color }};">{{ category.icon }}</span>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center mb-1">
+                                                <h5 class="mb-0 me-2">{{ category.name }}</h5>
+                                                {% if category.is_system %}
+                                                <span class="badge bg-dark text-accent">System</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex align-items-center mb-2">
+                                                <span class="type-badge income me-2">Income</span>
+                                                {% if category.parent %}
+                                                <span class="text-gray">
+                                                    <i class="bi bi-diagram-2 me-1"></i> {{ category.parent.name }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center text-gray small mb-1">
+                                            <i class="bi bi-receipt me-2"></i>
+                                            <span>{{ category.transaction_count if category.transaction_count else 0 }} transaction{{ 's' if category.transaction_count != 1 else '' }}</span>
+                                        </div>
+                                        {% if category.subcategories %}
+                                        <div class="d-flex align-items-center text-gray small">
+                                            <i class="bi bi-layers me-2"></i>
+                                            <span>{{ category.subcategories|length }} subcategor{{ 'ies' if category.subcategories|length != 1 else 'y' }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-secondary">
+                                        <span class="text-gray small">Color: <span style="color: {{ category.color }};">{{ category.color }}</span></span>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if not category.is_system %}
+                                            <a href="{{ url_for('categories.edit', category_id=category.id) }}" 
+                                               class="btn btn-outline-accent btn-hover-effect" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            {% endif %}
+                                            <a href="{{ url_for('transactions.index') }}?category_id={{ category.id }}" 
+                                               class="btn btn-outline-accent btn-hover-effect" title="View Transactions">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            {% if not category.is_system %}
+                                            <form method="POST" action="{{ url_for('categories.delete', category_id=category.id) }}" 
+                                                  class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-hover-effect" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-arrow-down-left text-gray fs-1 mb-3 empty-state-icon"></i>
+                        </div>
+                        <h5 class="text-light">No Income Categories</h5>
+                        <p class="text-gray mb-4">Create categories to organize your income</p>
+                        <a href="{{ url_for('categories.create') }}?type=income" class="btn btn-accent btn-hover-effect">
+                            <i class="bi bi-plus-circle me-1"></i> Create Income Category
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set active tab from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type');
+        
+        if (type === 'income') {
+            const incomeTab = new bootstrap.Tab(document.getElementById('income-tab'));
+            incomeTab.show();
+        }
+        
+        // Search functionality
+        const searchInput = document.getElementById('categorySearch');
+        
+        function performSearch() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const activeTab = document.querySelector('.tab-pane.active');
+            const categoryItems = activeTab.querySelectorAll('.category-item');
+            const container = activeTab.querySelector('.row');
+            
+            let hasResults = false;
+            
+            categoryItems.forEach(item => {
+                const name = item.getAttribute('data-name');
+                const description = item.getAttribute('data-description');
+                
+                if (name.includes(searchTerm) || description.includes(searchTerm)) {
+                    item.style.display = '';
+                    hasResults = true;
+                    
+                    // Add fade in animation
+                    item.style.animation = 'fadeInUp 0.3s ease-out';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Show/hide empty state
+            const emptyState = activeTab.querySelector('.text-center');
+            if (emptyState) {
+                if (searchTerm && !hasResults) {
+                    emptyState.style.display = 'block';
+                    emptyState.innerHTML = `
+                        <div class="mb-4">
+                            <i class="bi bi-search text-gray fs-1 mb-3"></i>
+                        </div>
+                        <h5 class="text-light">No Categories Found</h5>
+                        <p class="text-gray mb-4">No categories match your search criteria</p>
+                        <button class="btn btn-outline-accent" onclick="clearSearch()">
+                            <i class="bi bi-x me-1"></i> Clear Search
+                        </button>
+                    `;
+                } else if (!searchTerm) {
+                    // Restore original empty state if needed
+                    container.style.display = 'flex';
+                }
+            }
+        }
+        
+        // Clear search function
+        window.clearSearch = function() {
+            searchInput.value = '';
+            performSearch();
+        }
+        
+        // Add event listener for search
+        searchInput.addEventListener('input', performSearch);
+        
+        // Clear search when switching tabs
+        const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                setTimeout(() => {
+                    searchInput.value = '';
+                    performSearch();
+                }, 150);
+            });
+        });
+        
+        // Add keyboard shortcut for search (Ctrl/Cmd + F)
+        document.addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+                e.preventDefault();
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+        
+        // Add smooth transitions to tab switching
+        const tabContents = document.querySelectorAll('.tab-pane');
+        tabContents.forEach(content => {
+            content.style.transition = 'opacity 0.3s ease';
+        });
+        
+        // Add hover effect to all cards
+        const cards = document.querySelectorAll('.category-card');
+        cards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.zIndex = '10';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.zIndex = '1';
+            });
+        });
+    });
+</script>
+{% endblock %}

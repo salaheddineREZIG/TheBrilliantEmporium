@@ -20,9 +20,26 @@ def index():
     # Calculate total balance
     total_balance = sum(float(acc.current_balance) for acc in accounts)
     
+    # Get account types for filter
+    account_types = AccountType
+    
+    # Calculate monthly change (you'll need to implement this based on your transaction data)
+    monthly_change = 0.00  # Placeholder - implement based on your needs
+    
+    # Apply filters from URL parameters
+    if request.args.get('active'):
+        active_filter = request.args.get('active').lower() == 'true'
+        accounts = [acc for acc in accounts if acc.is_active == active_filter]
+    
+    if request.args.get('type'):
+        type_filter = request.args.get('type')
+        accounts = [acc for acc in accounts if acc.type.value == type_filter]
+    
     return render_template('accounts/index.html',
                          accounts=accounts,
-                         total_balance=total_balance)
+                         total_balance=total_balance,
+                         account_types=account_types,
+                         monthly_change=monthly_change)
 
 @accounts_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -116,17 +133,21 @@ def edit(account_id):
     form = AccountForm(obj=account)
     
     if form.validate_on_submit():
-        # Store old balance for adjustment
-        old_balance = account.current_balance
+        # Store old balance for adjustment (use floats to avoid Decimal/float mismatch)
+        old_balance = float(account.current_balance)
         
         account.name = form.name.data
         account.type = AccountType(form.type.data)
         
+        # Normalize initial balances to floats
+        new_initial = float(form.initial_balance.data)
+        old_initial = float(account.initial_balance)
+        
         # Adjust current balance if initial balance changed
-        if form.initial_balance.data != float(account.initial_balance):
-            balance_diff = form.initial_balance.data - float(account.initial_balance)
+        if new_initial != old_initial:
+            balance_diff = new_initial - old_initial
             account.current_balance = float(account.current_balance) + balance_diff
-            account.initial_balance = form.initial_balance.data
+            account.initial_balance = new_initial
         
         account.currency = form.currency.data
         account.updated_at = datetime.utcnow()
@@ -147,17 +168,7 @@ def delete(account_id):
         user_id=current_user.id
     ).first_or_404()
     
-    # Check if account has transactions
-    transaction_count = Transaction.query.filter_by(
-        account_id=account_id,
-        user_id=current_user.id
-    ).count()
-    
-    if transaction_count > 0:
-        flash('Cannot delete account with transactions. Archive it instead.', 'danger')
-        return redirect(url_for('accounts.view', account_id=account_id))
-    
-    # Soft delete (archive)
+    # Soft delete (archive) - allowed even if account has transactions
     account.is_active = False
     account.updated_at = datetime.utcnow()
     
@@ -206,3 +217,30 @@ def get_balance(account_id):
         'balance': float(account.current_balance),
         'currency': account.currency
     })
+    
+    
+@accounts_bp.route('/<int:account_id>/delete-permanent', methods=['POST'])
+@login_required
+def delete_permanent(account_id):
+    """Permanently delete account"""
+    account = Account.query.filter_by(
+        id=account_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    # Check if account has transactions
+    transaction_count = Transaction.query.filter_by(
+        account_id=account_id,
+        user_id=current_user.id
+    ).count()
+    
+    if transaction_count > 0:
+        flash('Cannot delete account with transactions. Archive it instead.', 'danger')
+        return redirect(url_for('accounts.view', account_id=account_id))
+    
+    # Hard delete
+    db.session.delete(account)
+    db.session.commit()
+    
+    flash('Account deleted permanently!', 'success')
+    return redirect(url_for('accounts.index'))

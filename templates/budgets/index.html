@@ -1,0 +1,687 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Budgets - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .progress {
+        height: 10px;
+        background-color: rgba(255, 255, 255, 0.1);
+        overflow: hidden;
+    }
+    
+    .progress-bar {
+        border-radius: 5px;
+        transition: width 1s ease-in-out;
+    }
+    
+    .budget-card {
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    
+    .budget-card.animate {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .budget-card:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    }
+    
+    .budget-over {
+        border-left: 4px solid var(--error);
+        background: linear-gradient(90deg, rgba(255, 107, 107, 0.1), transparent);
+    }
+    
+    .budget-under {
+        border-left: 4px solid var(--success);
+        background: linear-gradient(90deg, rgba(0, 255, 157, 0.1), transparent);
+    }
+    
+    .budget-warning {
+        border-left: 4px solid var(--warning);
+        background: linear-gradient(90deg, rgba(255, 209, 102, 0.1), transparent);
+    }
+    
+    .month-nav {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+    
+    .summary-card {
+        opacity: 0;
+        transform: translateY(30px);
+        transition: all 0.5s ease;
+    }
+    
+    .summary-card.animate {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+    
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover .summary-icon {
+        transform: rotate(10deg) scale(1.1);
+    }
+    
+    .budget-status {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 500;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .quick-setup-card {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.5s ease;
+    }
+    
+    .quick-setup-card.animate {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    }
+    
+    .pulse-on-hover:hover {
+        animation: pulse 1s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    /* Loading spinner */
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--accent);
+        animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Empty state animation */
+    .empty-state-icon {
+        animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    /* Progress animation */
+    .progress-animate {
+        animation: progressFill 1.5s ease-out forwards;
+    }
+    
+    @keyframes progressFill {
+        from { width: 0%; }
+        to { width: var(--target-width); }
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <!-- Page Header with Month Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+        <div>
+            <h1 class="h2 fw-bold mb-0"><i class="bi bi-pie-chart text-accent me-2"></i>Budgets</h1>
+            <p class="text-gray mb-0">Plan and track your monthly spending</p>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center month-nav slide-in-left">
+                <a href="?month={{ prev_month }}" class="text-accent me-3 hover-lift">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                <span>{{ month_name }}</span>
+                <a href="?month={{ next_month }}" class="text-accent ms-3 hover-lift">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+            <a href="{{ url_for('budgets.create') }}?month={{ current_month }}" class="btn btn-accent hover-lift pulse-on-hover">
+                <i class="bi bi-plus-circle me-1"></i> New Budget
+            </a>
+        </div>
+    </div>
+    
+    <!-- Budget Summary with Counter Animation -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card summary-card" data-delay="0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-cash-stack text-accent fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Total Budget</div>
+                            <h3 class="mb-0 counter" data-target="{{ total_budget }}">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card" data-delay="100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-currency-dollar text-danger fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Total Spent</div>
+                            <h3 class="mb-0 counter" data-target="{{ total_spent }}">$0.00</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card" data-delay="200">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-wallet2 text-success fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Remaining</div>
+                            <h3 class="mb-0 counter {{ 'text-success' if total_budget - total_spent >= 0 else 'text-danger' }}" 
+                                data-target="{{ total_budget - total_spent }}">
+                                $0.00
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card summary-card" data-delay="300">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="summary-icon bg-dark-gray me-3">
+                            <i class="bi bi-graph-up text-accent fs-4"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="text-gray small">Progress</div>
+                            <h3 class="mb-0 counter" data-target="{{ (total_spent / total_budget * 100) if total_budget > 0 else 0 }}">
+                                0%
+                            </h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Setup Button -->
+    {% if not budgets %}
+    <div class="card mb-4 quick-setup-card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-lightning text-accent fs-1 mb-3 empty-state-icon"></i>
+            <h5 class="text-light">Quick Budget Setup</h5>
+            <p class="text-gray mb-4">Create budgets automatically based on your previous month's spending</p>
+            <button class="btn btn-accent hover-lift" onclick="quickBudgetSetup(this)">
+                <i class="bi bi-magic me-1"></i> Setup Budgets Automatically
+            </button>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Budgets List -->
+    <div class="card fade-in">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Monthly Budgets</h5>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-outline-accent dropdown-toggle hover-lift" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item hover-lift" href="#" onclick="quickBudgetSetup()">
+                        <i class="bi bi-magic me-2"></i> Quick Setup
+                    </a></li>
+                    <li><a class="dropdown-item hover-lift" href="{{ url_for('budgets.index') }}?month={{ '2024-01' if current_month != '2024-01' else '2024-02' }}">
+                        <i class="bi bi-calendar me-2"></i> Compare Month
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if budgets %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Budget</th>
+                            <th>Spent</th>
+                            <th>Remaining</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for budget in budgets %}
+                        {% set spent = budget.spent_amount | float %}
+                        {% set remaining = (budget.amount | float) - spent %}
+                        {% set percentage = (spent / (budget.amount | float) * 100) if (budget.amount | float) > 0 else 0 %}
+                        <tr class="budget-card {{ 'budget-over' if spent > (budget.amount | float) else 'budget-under' if percentage < 80 else 'budget-warning' }}"
+                            data-delay="{{ loop.index * 50 }}">
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if budget.category %}
+                                    <div class="me-3">
+                                        <span class="fs-4" style="color: {{ budget.category.color }};">{{ budget.category.icon }}</span>
+                                    </div>
+                                    <div>
+                                        <strong>{{ budget.category.name }}</strong>
+                                        <div class="text-gray small">
+                                            {{ budget.category.type.value|title }}
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-gray">Category not found</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <strong>${{ "%.2f"|format(budget.amount) }}</strong>
+                            </td>
+                            <td>
+                                <span class="{{ 'text-danger' if spent > budget.amount else 'text-light' }}">
+                                    ${{ "%.2f"|format(spent) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="{{ 'text-danger' if remaining < 0 else 'text-success' }}">
+                                    ${{ "%.2f"|format(remaining) }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2">
+                                        <div class="progress-bar progress-animate {{ 'bg-danger' if percentage > 100 else 'bg-warning' if percentage > 80 else 'bg-success' }}" 
+                                             style="--target-width: {{ percentage if percentage <= 100 else 100 }}%; width: 0%;">
+                                        </div>
+                                    </div>
+                                    <span class="text-gray small">{{ "%.0f"|format(percentage) }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if percentage > 100 %}
+                                <span class="budget-status bg-danger">Over Budget</span>
+                                {% elif percentage > 80 %}
+                                <span class="budget-status bg-warning">Close to Limit</span>
+                                {% else %}
+                                <span class="budget-status bg-success">On Track</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('budgets.edit', budget_id=budget.id) }}" class="btn btn-outline-accent hover-lift">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger hover-lift" 
+                                            onclick="deleteBudget({{ budget.id }})">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 fade-in">
+                <i class="bi bi-pie-chart text-gray fs-1 mb-3 empty-state-icon"></i>
+                <h5 class="text-light">No Budgets for {{ month_name }}</h5>
+                <p class="text-gray">Create budgets to track your monthly spending</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('budgets.create') }}?month={{ current_month }}" class="btn btn-accent hover-lift">
+                        <i class="bi bi-plus-circle me-1"></i> Create Budget
+                    </a>
+                    <button class="btn btn-outline-accent hover-lift" onclick="quickBudgetSetup(this)">
+                        <i class="bi bi-magic me-1"></i> Quick Setup
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-gray border-secondary">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-accent mb-3" role="status" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5 class="text-light">Processing...</h5>
+                <p class="text-gray small">Setting up your budgets based on previous spending</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark-gray border-secondary">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-light">Delete Budget</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-light">Are you sure you want to delete this budget? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-accent" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate summary cards
+        const summaryCards = document.querySelectorAll('.summary-card');
+        summaryCards.forEach((card, index) => {
+            const delay = parseInt(card.getAttribute('data-delay')) || 0;
+            setTimeout(() => {
+                card.style.animationDelay = `${delay}ms`;
+                card.classList.add('animate');
+            }, 100);
+        });
+        
+        // Animate budget cards
+        const budgetCards = document.querySelectorAll('.budget-card');
+        budgetCards.forEach((card, index) => {
+            const delay = parseInt(card.getAttribute('data-delay')) || index * 50;
+            setTimeout(() => {
+                card.style.animationDelay = `${delay}ms`;
+                card.classList.add('animate');
+            }, 300);
+        });
+        
+        // Animate quick setup card
+        const quickSetupCard = document.querySelector('.quick-setup-card');
+        if (quickSetupCard) {
+            setTimeout(() => {
+                quickSetupCard.classList.add('animate');
+            }, 500);
+        }
+        
+        // Start counter animations
+        animateCounters();
+        
+        // Animate progress bars
+        setTimeout(() => {
+            const progressBars = document.querySelectorAll('.progress-animate');
+            progressBars.forEach(bar => {
+                bar.style.width = bar.style.getPropertyValue('--target-width');
+            });
+        }, 1000);
+        
+        // Add hover effect to progress bars
+        const progressContainers = document.querySelectorAll('.progress');
+        progressContainers.forEach(container => {
+            container.addEventListener('mouseenter', function() {
+                const bar = this.querySelector('.progress-bar');
+                bar.style.transform = 'scaleY(1.5)';
+            });
+            container.addEventListener('mouseleave', function() {
+                const bar = this.querySelector('.progress-bar');
+                bar.style.transform = 'scaleY(1)';
+            });
+        });
+    });
+    
+    // Helper to retrieve CSRF token (safe: prefer global helper when it's a different function)
+    function getCsrfToken() {
+        // If a global helper exists (from the base layout) and it is a different function, use it
+        if (typeof window.getCsrfToken === 'function' && window.getCsrfToken !== getCsrfToken) {
+            try {
+                return window.getCsrfToken();
+            } catch (e) {
+                // Fall through to local fallbacks
+            }
+        }
+
+        // Local fallbacks
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta && meta.content) return meta.content;
+        const match = document.cookie.match(/(^|;)\s*csrf_token=([^;]+)/);
+        if (match) return decodeURIComponent(match[2]);
+        const el = document.querySelector('input[name="csrf_token"]');
+        if (el) return el.value;
+        return '';
+    }
+    
+    // Animate counters
+    function animateCounters() {
+        const counters = document.querySelectorAll('.counter');
+        counters.forEach(counter => {
+            const target = parseFloat(counter.getAttribute('data-target'));
+            if (isNaN(target)) return;
+            
+            const isCurrency = counter.textContent.includes('$');
+            const isPercentage = counter.textContent.includes('%');
+            const duration = 1500;
+            const increment = target / (duration / 16);
+            let current = 0;
+            
+            const updateCounter = () => {
+                current += increment;
+                if (current >= target) {
+                    if (isCurrency) {
+                        counter.textContent = '$' + target.toFixed(2);
+                    } else if (isPercentage) {
+                        counter.textContent = Math.round(target) + '%';
+                    } else {
+                        counter.textContent = Math.round(target);
+                    }
+                } else {
+                    if (isCurrency) {
+                        counter.textContent = '$' + current.toFixed(2);
+                    } else if (isPercentage) {
+                        counter.textContent = Math.round(current) + '%';
+                    } else {
+                        counter.textContent = Math.round(current);
+                    }
+                    requestAnimationFrame(updateCounter);
+                }
+            };
+            
+            requestAnimationFrame(updateCounter);
+        });
+    }
+    
+    function deleteBudget(budgetId) {
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/budgets/${budgetId}/delete`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
+    }
+    
+    async function quickBudgetSetup(button) {
+        const month = '{{ current_month }}'.replace('-', '');
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        
+        // Show loading modal
+        loadingModal.show();
+        
+        // Add loading state to button
+        if (button) {
+            const originalContent = button.innerHTML;
+            button.innerHTML = '<span class="loading-spinner me-2"></span> Setting up...';
+            button.disabled = true;
+        }
+        
+        try {
+            const csrf = getCsrfToken();
+            const response = await fetch('{{ url_for("budgets.quick_setup") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrf,
+                    'X-CSRF-Token': csrf
+                },
+                body: JSON.stringify({ month: month, csrf_token: csrf })
+            });
+
+            // If the response is not ok, try to read a helpful error message
+            if (!response.ok) {
+                let text = '';
+                try {
+                    const json = await response.json();
+                    text = json.error || json.message || JSON.stringify(json);
+                } catch (e) {
+                    text = await response.text();
+                }
+                loadingModal.hide();
+                showErrorMessage(text || 'Failed to setup budgets');
+                return;
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                loadingModal.hide();
+                showErrorMessage('Invalid response from server');
+                return;
+            }
+
+            loadingModal.hide();
+
+            if (data.success) {
+                // Show success animation
+                showSuccessMessage(data.message);
+
+                // Animate refresh
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showErrorMessage(data.error || 'Failed to setup budgets');
+            }
+        } catch (error) {
+            loadingModal.hide();
+            showErrorMessage('Error setting up budgets');
+            console.error('Error:', error);
+        } finally {
+            // Restore button
+            if (button) {
+                button.innerHTML = '<i class="bi bi-magic me-1"></i> Setup Budgets Automatically';
+                button.disabled = false;
+            }
+        }
+    }
+    
+    function showSuccessMessage(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alert.style.zIndex = '1060';
+        alert.innerHTML = `
+            <i class="bi bi-check-circle-fill me-2"></i>${message}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+    
+    function showErrorMessage(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3';
+        alert.style.zIndex = '1060';
+        alert.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>${message}
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+</script>
+{% endblock %}

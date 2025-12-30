@@ -263,9 +263,17 @@ class Budget(db.Model):
     
     @property
     def spent_amount(self):
-        """Calculate total spent for this category in the budget month"""
-        # This would typically be calculated via a query
-        return 0.00  # Placeholder - implement with SQL query
+        """Total spent for this category in the budget month.
+
+        This property can be computed dynamically or set by view code which
+        pre-computes the value and assigns it. We keep an internal field
+        `_spent_amount` so both usages work.
+        """
+        return float(getattr(self, '_spent_amount', 0.0))
+
+    @spent_amount.setter
+    def spent_amount(self, value):
+        self._spent_amount = float(value) if value is not None else 0.0
     
     @property
     def remaining_amount(self):
@@ -330,4 +338,81 @@ class Transfer(db.Model):
             'from_account_id': self.from_account_id,
             'to_account_id': self.to_account_id,
             'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+        
+        
+class UserSettings(db.Model):
+    """User-specific application settings"""
+    __tablename__ = 'user_settings'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
+    
+    # General Settings
+    default_currency = db.Column(db.String(3), default='USD')
+    date_format = db.Column(db.String(20), default='MM/DD/YYYY')  # MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD
+    first_day_of_week = db.Column(db.Integer, default=0)  # 0=Sunday, 1=Monday
+    theme = db.Column(db.String(10), default='dark')  # dark, light, auto
+    
+    # Dashboard Preferences
+    show_charts = db.Column(db.Boolean, default=True)
+    show_recent = db.Column(db.Boolean, default=True)
+    show_budgets = db.Column(db.Boolean, default=True)
+    
+    # Transaction Preferences
+    auto_categorize = db.Column(db.Boolean, default=True)
+    duplicate_detection = db.Column(db.Boolean, default=True)
+    require_description = db.Column(db.Boolean, default=False)
+    
+    # Notification Settings
+    budget_alerts = db.Column(db.Boolean, default=True)
+    large_transactions = db.Column(db.Boolean, default=True)
+    weekly_summary = db.Column(db.Boolean, default=True)
+    monthly_report = db.Column(db.Boolean, default=True)
+    app_budget_alerts = db.Column(db.Boolean, default=True)
+    app_bill_reminders = db.Column(db.Boolean, default=True)
+    app_goals_update = db.Column(db.Boolean, default=True)
+    
+    # Large transaction threshold (percentage of monthly income)
+    large_transaction_threshold = db.Column(db.Numeric(5, 2), default=20.0)  # 20%
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", backref=backref("settings", uselist=False))
+    
+    def to_dict(self):
+        """Serialize settings to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'general': {
+                'default_currency': self.default_currency,
+                'date_format': self.date_format,
+                'first_day_of_week': self.first_day_of_week,
+                'theme': self.theme
+            },
+            'dashboard': {
+                'show_charts': self.show_charts,
+                'show_recent': self.show_recent,
+                'show_budgets': self.show_budgets
+            },
+            'transactions': {
+                'auto_categorize': self.auto_categorize,
+                'duplicate_detection': self.duplicate_detection,
+                'require_description': self.require_description
+            },
+            'notifications': {
+                'budget_alerts': self.budget_alerts,
+                'large_transactions': self.large_transactions,
+                'weekly_summary': self.weekly_summary,
+                'monthly_report': self.monthly_report,
+                'app_budget_alerts': self.app_budget_alerts,
+                'app_bill_reminders': self.app_bill_reminders,
+                'app_goals_update': self.app_goals_update,
+                'large_transaction_threshold': float(self.large_transaction_threshold)
+            },
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

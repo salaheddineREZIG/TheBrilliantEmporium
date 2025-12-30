@@ -1,179 +1,1400 @@
-{% extends "layout.html" %}
+{% extends "accounts/layout.html" %}
 
 {% block title %}Dashboard - The Brilliant Emporium{% endblock %}
 
-{% block navbar %}
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="{{ url_for('dashboard.index') }}">
-            <i class="bi bi-calculator me-2"></i>
-            The Brilliant Emporium
-        </a>
+{% block extras %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Animate.css for animations -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+
+<style>
+    :root {
+        --primary-gradient: linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%);
+        --success-gradient: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+        --warning-gradient: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+        --danger-gradient: linear-gradient(135deg, #ff416c 0%, #ff4b2b 100%);
+        --info-gradient: linear-gradient(135deg, #1a2980 0%, #26d0ce 100%);
+        --purple-gradient: linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%);
+    }
+    
+    /* Enhanced Dashboard Header */
+    .dashboard-header {
+        background: linear-gradient(135deg, 
+            rgba(15, 15, 15, 0.95) 0%, 
+            rgba(26, 26, 26, 0.95) 100%);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            rgba(255, 255, 255, 0.06) 50%, 
+            transparent 100%);
+    }
+    
+    /* Welcome Card with Glass Morphism */
+    .welcome-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 2rem;
+        backdrop-filter: blur(20px);
+        position: relative;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .welcome-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Enhanced Stat Cards */
+    .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        border-color: rgba(255, 255, 255, 0.08);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4),
+                    0 0 0 1px rgba(255, 255, 255, 0.04);
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--primary-gradient);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.6s ease;
+    }
+    
+    .stat-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    /* Animated Stat Icon */
+    .stat-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Animated Stat Value */
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    /* Floating Action Button - Fixed */
+    .floating-action-btn {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--primary-gradient);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 10px 30px rgba(255, 255, 255, 0.06);
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        z-index: 1000;
+        border: none;
+        outline: none;
+    }
+    
+    .floating-action-btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 15px 40px rgba(255, 255, 255, 0.08);
+    }
+    
+    .floating-action-menu {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        background: rgba(30, 30, 30, 0.98);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 0.5rem;
+        min-width: 200px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(10px);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    }
+    
+    .floating-action-menu.show {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+    
+    .floating-action-menu .dropdown-item {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.25rem;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: block;
+    }
+    
+    .floating-action-menu .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+    
+    /* Enhanced Charts Container */
+    .chart-container {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 1.5rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+    }
+    
+    .chart-container:hover {
+        border-color: rgba(255, 255, 255, 0.06);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .chart-container-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        flex-shrink: 0;
+    }
+    
+    /* Interactive Period Selector */
+    .period-selector {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 0.25rem;
+        display: inline-flex;
+    }
+    
+    .period-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .period-btn.active {
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6e6e6;
+        box-shadow: 0 4px 15px rgba(255, 255, 255, 0.04);
+    }
+    
+    .period-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.9);
+        transform: translateY(-1px);
+    }
+    
+    /* Enhanced Transaction Items */
+    .transaction-item {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid transparent;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .transaction-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(102, 126, 255, 0.2);
+        transform: translateX(5px);
+    }
+    
+    .transaction-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: var(--primary-gradient);
+        transform: scaleY(0);
+        transform-origin: top;
+        transition: transform 0.3s ease;
+    }
+    
+    /* Enhanced Progress Bars */
+    .progress-bar-container {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0.5rem 0;
+        position: relative;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* Quick Actions Grid */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .quick-action-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.25rem 0.75rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 110px;
+        text-decoration: none;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.06);
+        box-shadow: 0 10px 25px rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.02);
+    }
+    
+    .quick-action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+        background: var(--primary-gradient);
+        color: white;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action-card:hover .quick-action-icon {
+        transform: rotateY(180deg) scale(1.1);
+    }
+    
+    /* Financial Insights Cards */
+    .insight-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .insight-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.06);
+        transform: translateY(-3px);
+    }
+    
+    /* Responsive Grid Layout */
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.5rem;
+        align-items: start;
+        padding: 0 0 2rem 0;
+    }
+    
+    .stat-grid {
+        grid-column: span 12;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .chart-grid-left {
+        grid-column: span 8;
+    }
+    
+    .chart-grid-right {
+        grid-column: span 4;
+    }
+    
+    .transactions-grid {
+        grid-column: span 4;
+    }
+    
+    .budget-grid {
+        grid-column: span 4;
+    }
+    
+    .right-grid {
+        grid-column: span 4;
+    }
+
+    /* Anchor right column to the right on desktop widths (>=1200px) */
+    @media (min-width: 1200px) {
+        .right-grid {
+            grid-column: 9 / 13;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .transactions-grid {
+            grid-column: 1 / span 4;
+        }
+        .budget-grid {
+            grid-column: 5 / span 4;
+        }
+    }
+    
+    @media (max-width: 1400px) {
+        .stat-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
         
-        <div class="navbar-nav ms-auto">
-            <div class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                    <i class="bi bi-person-circle me-1"></i> {{ current_user.name }}
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="{{ url_for('auth.profile') }}">Profile</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</nav>
+        .chart-grid-left,
+        .chart-grid-right {
+            grid-column: span 6;
+        }
+        
+        .transactions-grid,
+        .budget-grid,
+        .right-grid {
+            grid-column: span 6;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .stat-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-grid-left,
+        .chart-grid-right {
+            grid-column: span 12;
+        }
+        
+        .transactions-grid,
+        .budget-grid,
+        .right-grid {
+            grid-column: span 12;
+        }
+        
+        .quick-actions-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .stat-value {
+            font-size: 1.75rem;
+        }
+    }
+    
+    /* Scrollbar Styling */
+    .scroll-container {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .scroll-container::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 3px;
+    }
+    
+    .scroll-container::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 3px;
+    }
+    
+    .scroll-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+    
+    /* Empty States */
+    .empty-state {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+    
+    .empty-state-icon {
+        font-size: 2rem;
+        opacity: 0.3;
+        margin-bottom: 0.75rem;
+    }
+    
+    /* Badge styles */
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+    
+    /* Chart Controls */
+    .chart-controls {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .chart-type-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.03);
+        color: rgba(255, 255, 255, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .chart-type-btn.active {
+        background: rgba(255, 255, 255, 0.06);
+        color: #e6e6e6;
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+    
+    .chart-type-btn:hover:not(.active) {
+        background: rgba(255, 255, 255, 0.05);
+        color: rgba(255, 255, 255, 0.9);
+    }
+    
+    /* Account Cards */
+    .account-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .account-card:hover {
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .account-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        background: rgba(255, 255, 255, 0.03);
+        color: #e6e6e6;
+    }
+</style>
 {% endblock %}
 
 {% block main %}
-<div class="container py-5">
-    <div class="row mb-4">
-        <div class="col">
-            <h1 class="text-light">Dashboard</h1>
-            <p class="text-gray">Welcome back, {{ current_user.name }}!</p>
-        </div>
+<!-- Fixed Floating Action Button -->
+<div class="floating-action-btn" id="fab">
+    <i class="bi bi-plus-lg"></i>
+    <div class="floating-action-menu" id="fabMenu">
+        <a href="{{ url_for('transactions.create') }}" class="dropdown-item d-flex align-items-center py-2 px-3">
+            <i class="bi bi-plus-circle me-2"></i> New Transaction
+        </a>
+        <a href="{{ url_for('accounts.create') }}" class="dropdown-item d-flex align-items-center py-2 px-3">
+            <i class="bi bi-wallet2 me-2"></i> Add Account
+        </a>
+        <a href="{{ url_for('transfers.create') }}" class="dropdown-item d-flex align-items-center py-2 px-3">
+            <i class="bi bi-arrow-left-right me-2"></i> Transfer Money
+        </a>
+        <a href="{{ url_for('budgets.create') }}" class="dropdown-item d-flex align-items-center py-2 px-3">
+            <i class="bi bi-tag me-2"></i> Set Budget
+        </a>
     </div>
-    
-    <!-- Total Balance Card -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Total Balance</h5>
-                    <h2 class="card-text">${{ "%.2f"|format(total_balance) }}</h2>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Accounts</h5>
-                    <h2 class="card-text">{{ accounts|length }}</h2>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-md-4">
-            <div class="card bg-dark text-white">
-                <div class="card-body">
-                    <h5 class="card-title">Recent Transactions</h5>
-                    <h2 class="card-text">{{ recent_transactions|length }}</h2>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Accounts Section -->
-    <div class="row mb-5">
-        <div class="col">
-            <div class="card bg-dark text-white">
-                <div class="card-header">
-                    <h5 class="mb-0">Your Accounts</h5>
-                </div>
-                <div class="card-body">
-                    {% if accounts %}
-                        <div class="table-responsive">
-                            <table class="table table-dark">
-                                <thead>
-                                    <tr>
-                                        <th>Account Name</th>
-                                        <th>Type</th>
-                                        <th>Balance</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for account in accounts %}
-                                    <tr>
-                                        <td>{{ account.name }}</td>
-                                        <td>{{ account.type.value }}</td>
-                                        <td>${{ "%.2f"|format(account.current_balance) }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+</div>
+
+<!-- Animated Dashboard Header -->
+<div class="dashboard-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="welcome-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="me-3">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 d-inline-block">
+                                <i class="bi bi-gem fs-4 text-primary"></i>
+                            </div>
                         </div>
-                    {% else %}
-                        <p class="text-center">No accounts yet. <a href="#">Create your first account</a></p>
-                    {% endif %}
+                        <div>
+                            <h1 class="h2 mb-1">Welcome back, {{ current_user.name }}! 👋</h1>
+                            <p class="text-gray mb-0">
+                                <i class="bi bi-calendar3 me-1"></i> 
+                                <span id="currentDate">{{ today.strftime('%A, %B %d, %Y') }}</span>
+                                • 
+                                <span id="liveTime" class="text-accent">{{ today.strftime('%I:%M %p') }}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 me-3">
+                            <i class="bi bi-stars me-1"></i>
+                            Your financial overview
+                        </div>
+                        <div class="text-gray small">
+                            Last updated: <span id="lastUpdated">Just now</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Recent Transactions -->
-    <div class="row">
-        <div class="col">
-            <div class="card bg-dark text-white">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Transactions</h5>
-                </div>
-                <div class="card-body">
-                    {% if recent_transactions %}
-                        <div class="table-responsive">
-                            <table class="table table-dark">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Description</th>
-                                        <th>Category</th>
-                                        <th>Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for transaction in recent_transactions %}
-                                    <tr>
-                                        <td>{{ transaction.date.strftime('%Y-%m-%d') }}</td>
-                                        <td>{{ transaction.description or 'No description' }}</td>
-                                        <td>{{ transaction.category.name if transaction.category else 'Uncategorized' }}</td>
-                                        <td class="{{ 'text-success' if transaction.type.value == 'income' else 'text-danger' }}">
-                                            {{ '$%.2f'|format(transaction.amount) }}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <p class="text-center">No transactions yet. <a href="#">Add your first transaction</a></p>
-                    {% endif %}
+            <div class="col-lg-4 mt-4 mt-lg-0">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="period-selector">
+                        <button class="period-btn active" data-period="month">Month</button>
+                        <button class="period-btn" data-period="quarter">Quarter</button>
+                        <button class="period-btn" data-period="year">Year</button>
+                    </div>
+                    <button class="btn btn-accent btn-sm" id="refreshData">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-    :root {
-        --black: #000000;
-        --dark-gray: #121212;
-        --gray: #1e1e1e;
-        --text-light: #f8f9fa;
-        --text-gray: #adb5bd;
-    }
-    
-    body {
-        background-color: var(--dark-gray);
-        color: var(--text-light);
-    }
-    
-    .bg-dark {
-        background-color: var(--gray) !important;
-        border: 1px solid #333;
-    }
-    
-    .table-dark {
-        background-color: var(--dark-gray);
-        color: var(--text-light);
-    }
-    
-    .text-gray {
-        color: var(--text-gray) !important;
-    }
-    
-    .card {
-        border: 1px solid #333;
-    }
-</style>
+<div class="container-fluid pb-5">
+    <!-- Dashboard Grid Layout -->
+    <div class="dashboard-grid">
+        <!-- Key Stats Row -->
+        <div class="stat-grid">
+            <!-- Total Balance -->
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--primary-gradient);">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div class="stat-value">${{ "%.2f"|format(total_balance) }}</div>
+                <div class="stat-label">Total Balance</div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="badge bg-opacity-10 {{ 'bg-success' if monthly_savings >= 0 else 'bg-danger' }} {{ 'text-success' if monthly_savings >= 0 else 'text-danger' }} px-3 py-2">
+                        <i class="bi bi-arrow-{{ 'up' if monthly_savings >= 0 else 'down' }}-right me-1"></i>
+                        ${{ "%.2f"|format(monthly_savings) }}
+                    </span>
+                    <a href="{{ url_for('accounts.index') }}" class="text-accent text-decoration-none">
+                        <i class="bi bi-arrow-right-circle fs-5"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Monthly Income -->
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--success-gradient);">
+                    <i class="bi bi-arrow-down-circle"></i>
+                </div>
+                <div class="stat-value">${{ "%.2f"|format(monthly_income) }}</div>
+                <div class="stat-label">Monthly Income</div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="badge bg-success bg-opacity-10 text-success px-3 py-2">
+                        <i class="bi bi-trending-up me-1"></i>
+                        {{ "%.1f"|format((monthly_income/(trend_data[-2]['income'] if trend_data|length > 1 else monthly_income))*100 - 100) if trend_data|length > 1 and trend_data[-2]['income'] > 0 else '0.0' }}%
+                    </span>
+                    <a href="{{ url_for('transactions.index') }}?type=income" class="text-accent text-decoration-none">
+                        <i class="bi bi-arrow-right-circle fs-5"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Monthly Expense -->
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--danger-gradient);">
+                    <i class="bi bi-arrow-up-circle"></i>
+                </div>
+                <div class="stat-value">${{ "%.2f"|format(monthly_expense) }}</div>
+                <div class="stat-label">Monthly Expense</div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2">
+                        <i class="bi bi-trending-up me-1"></i>
+                        {{ "%.1f"|format((monthly_expense/(trend_data[-2]['expense'] if trend_data|length > 1 else monthly_expense))*100 - 100) if trend_data|length > 1 and trend_data[-2]['expense'] > 0 else '0.0' }}%
+                    </span>
+                    <a href="{{ url_for('transactions.index') }}?type=expense" class="text-accent text-decoration-none">
+                        <i class="bi bi-arrow-right-circle fs-5"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Monthly Savings -->
+            <div class="stat-card">
+                <div class="stat-icon" style="background: var(--info-gradient);">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+                <div class="stat-value">${{ "%.2f"|format(monthly_savings) }}</div>
+                <div class="stat-label">Monthly Savings</div>
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <span class="badge bg-info bg-opacity-10 text-info px-3 py-2">
+                        <i class="bi bi-percent me-1"></i>
+                        {{ "%.0f"|format((monthly_savings/monthly_income*100) if monthly_income > 0 else 0) }}%
+                    </span>
+                    <a href="{{ url_for('reports.index') }}" class="text-accent text-decoration-none">
+                        <i class="bi bi-arrow-right-circle fs-5"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts Section -->
+        <div class="chart-grid-left">
+            <div class="chart-container">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Income vs Expense Trend
+                    </h5>
+                    <div class="chart-controls">
+                        <div class="btn-group btn-group-sm">
+                            <button class="chart-type-btn active" data-chart-type="line" title="Line Chart">
+                                <i class="bi bi-graph-up"></i>
+                            </button>
+                            <button class="chart-type-btn" data-chart-type="bar" title="Bar Chart">
+                                <i class="bi bi-bar-chart"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container-content" style="flex: 1; position: relative;">
+                    <canvas id="incomeExpenseChart"></canvas>
+                </div>
+                <div class="mt-3 text-center">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="small text-gray">Avg Daily Income</div>
+                            <div class="h6 mb-0 text-success">${{ "%.2f"|format(monthly_income/30) }}</div>
+                        </div>
+                        <div class="col-6">
+                            <div class="small text-gray">Avg Daily Expense</div>
+                            <div class="h6 mb-0 text-danger">${{ "%.2f"|format(monthly_expense/30) }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-grid-right">
+            <div class="chart-container">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart me-2"></i>
+                        Spending by Category
+                    </h5>
+                    <a href="{{ url_for('categories.index') }}" class="btn btn-sm btn-outline-accent">
+                        <i class="bi bi-gear"></i>
+                    </a>
+                </div>
+                <div class="chart-container-content" style="flex: 1; position: relative;">
+                    <canvas id="expenseCategoryChart"></canvas>
+                </div>
+                <div class="mt-3">
+                    <div class="small text-gray mb-2">Top Categories</div>
+                    <div id="topCategories">
+                        {% for cat in expense_by_category[:3] %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="rounded-circle me-2" style="width: 8px; height: 8px; background: {{ cat.color }};"></div>
+                                <span class="small">{{ cat.name[:15] }}</span>
+                            </div>
+                            <span class="small fw-medium">${{ "%.2f"|format(cat.total) }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Transactions -->
+        <div class="transactions-grid">
+            <div class="chart-container">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-clock-history me-2"></i>
+                        Recent Transactions
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('transactions.create') }}" class="btn btn-sm btn-accent me-2">
+                            <i class="bi bi-plus"></i>
+                        </a>
+                        <a href="{{ url_for('transactions.index') }}" class="btn btn-sm btn-outline-accent">
+                            View All
+                        </a>
+                    </div>
+                </div>
+                <div class="scroll-container mt-2">
+                    {% if recent_transactions %}
+                        {% for transaction in recent_transactions %}
+                        <div class="transaction-item" onclick="window.location='{{ url_for('transactions.edit', transaction_id=transaction.id) }}'">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center" style="min-width: 0;">
+                                    <div class="me-3" style="color: {{ transaction.category.color if transaction.category else '#808080' }}">
+                                        <i class="{{ transaction.category.icon if transaction.category else 'bi bi-tag' }} fs-5"></i>
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div class="fw-medium small text-truncate" style="max-width: 150px;">
+                                            {{ transaction.description or 'No description' }}
+                                        </div>
+                                        <div class="d-flex align-items-center mt-1">
+                                            <span class="badge bg-dark bg-opacity-25 me-2" style="font-size: 0.65rem;">
+                                                {{ transaction.category.name[:12] if transaction.category else 'Uncategorized' }}
+                                            </span>
+                                            <span class="text-gray small">
+                                                {{ transaction.date.strftime('%b %d') }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end ms-2">
+                                    <div class="fw-bold {{ 'text-success' if transaction.type.value == 'income' else 'text-danger' }}">
+                                        {{ '+' if transaction.type.value == 'income' else '-' }}${{ "%.2f"|format(transaction.amount) }}
+                                    </div>
+                                    <div class="small text-gray">
+                                        <i class="bi bi-{{ 'credit-card' if transaction.account.type.value == 'credit_card' else 'bank' if transaction.account.type.value in ['checking', 'savings'] else 'cash' if transaction.account.type.value == 'cash' else 'wallet2' }} me-1"></i>
+                                        {{ transaction.account.name[:8] }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state py-5 text-center">
+                            <div class="empty-state-icon mb-3">
+                                <i class="bi bi-arrow-left-right fs-1 opacity-25"></i>
+                            </div>
+                            <p class="small mb-0 text-gray">No transactions yet</p>
+                            <a href="{{ url_for('transactions.create') }}" class="btn btn-sm btn-accent mt-3">
+                                <i class="bi bi-plus me-1"></i> Add Transaction
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Budget Progress -->
+        <div class="budget-grid">
+            <div class="chart-container">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart-fill me-2"></i>
+                        Budget Progress
+                    </h5>
+                    <div>
+                        <a href="{{ url_for('budgets.create') }}" class="btn btn-sm btn-accent me-2">
+                            <i class="bi bi-plus"></i>
+                        </a>
+                        <a href="{{ url_for('budgets.index') }}" class="btn btn-sm btn-outline-accent">
+                            Manage
+                        </a>
+                    </div>
+                </div>
+                <div class="scroll-container mt-2">
+                    {% if budgets %}
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="small text-gray">Overall Progress</div>
+                                <div class="fw-bold small">
+                                    ${{ "%.0f"|format(total_spent) }}/${{ "%.0f"|format(total_budget) }}
+                                    ({{ "%.0f"|format((total_spent/total_budget)*100 if total_budget > 0 else 0) }}%)
+                                </div>
+                            </div>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar" 
+                                     style="width: {{ (total_spent/total_budget)*100 if total_budget > 0 else 0 }}%;
+                                            background: var(--primary-gradient);">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            {% for budget in budgets %}
+                            <div class="mb-3 p-3 rounded-3 {{ 'border-danger border-opacity-25' if budget.is_over else 'border-success border-opacity-25' }}" 
+                                 style="border: 1px solid;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="d-flex align-items-center" style="min-width: 0;">
+                                        <div class="me-3" style="color: {{ budget.color }}">
+                                            <i class="{{ budget.icon }}"></i>
+                                        </div>
+                                        <div style="min-width: 0;">
+                                            <div class="fw-medium small text-truncate" style="max-width: 120px;">
+                                                {{ budget.name }}
+                                            </div>
+                                            <div class="small text-gray">{{ budget.progress|int }}% used</div>
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-bold small {{ 'text-danger' if budget.is_over else 'text-success' }}">
+                                            ${{ "%.0f"|format(budget.remaining) }}
+                                        </div>
+                                        <div class="small text-gray">remaining</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between small text-gray mb-2">
+                                    <span>${{ "%.0f"|format(budget.spent) }}/${{ "%.0f"|format(budget.amount) }}</span>
+                                    <span>{{ "%.0f"|format(budget.progress) }}%</span>
+                                </div>
+                                <div class="progress-bar-container">
+                                    <div class="progress-bar" 
+                                         style="width: {{ budget.progress }}%;
+                                                background: {{ budget.color }};">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="empty-state py-5 text-center">
+                            <div class="empty-state-icon mb-3">
+                                <i class="bi bi-pie-chart fs-1 opacity-25"></i>
+                            </div>
+                            <p class="small mb-0 text-gray">No budgets set for this month</p>
+                            <a href="{{ url_for('budgets.create') }}" class="btn btn-sm btn-accent mt-3">
+                                <i class="bi bi-plus me-1"></i> Create Budget
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Column -->
+        <div class="right-grid">
+            <!-- Quick Actions -->
+            <div class="chart-container mb-3">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightning me-2"></i>
+                        Quick Actions
+                    </h5>
+                </div>
+                <div class="quick-actions-grid mt-2">
+                    <a href="{{ url_for('transactions.create') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-plus-circle"></i>
+                        </div>
+                        <div class="quick-action-label">Add Transaction</div>
+                    </a>
+                    <a href="{{ url_for('accounts.create') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-wallet2"></i>
+                        </div>
+                        <div class="quick-action-label">Add Account</div>
+                    </a>
+                    <a href="{{ url_for('transfers.create') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </div>
+                        <div class="quick-action-label">Transfer</div>
+                    </a>
+                    <a href="{{ url_for('categories.index') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-tags"></i>
+                        </div>
+                        <div class="quick-action-label">Categories</div>
+                    </a>
+                    <a href="{{ url_for('reports.index') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-graph-up"></i>
+                        </div>
+                        <div class="quick-action-label">Reports</div>
+                    </a>
+                    <a href="{{ url_for('settings.index') }}" class="quick-action-card">
+                        <div class="quick-action-icon">
+                            <i class="bi bi-gear"></i>
+                        </div>
+                        <div class="quick-action-label">Settings</div>
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Accounts Overview -->
+            <div class="chart-container mb-3">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-wallet2 me-2"></i>
+                        Accounts Overview
+                    </h5>
+                    <a href="{{ url_for('accounts.index') }}" class="btn btn-sm btn-outline-accent">
+                        View All
+                    </a>
+                </div>
+                <div class="scroll-container mt-2" style="max-height: 200px;">
+                    {% if accounts %}
+                        {% for account in accounts %}
+                        <div class="account-card">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center" style="min-width: 0;">
+                                    <div class="account-icon me-3">
+                                        <i class="bi bi-{{ 'credit-card' if account.type.value == 'credit_card' else 'bank' if account.type.value in ['checking', 'savings'] else 'cash' if account.type.value == 'cash' else 'wallet2' }}"></i>
+                                    </div>
+                                    <div style="min-width: 0;">
+                                        <div class="fw-medium small text-truncate" style="max-width: 100px;">
+                                            {{ account.name }}
+                                        </div>
+                                        <div class="small text-gray">
+                                            {{ account.type.value|replace('_', ' ')|title }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold small {{ 'text-danger' if account.current_balance < 0 else 'text-light' }}">
+                                        ${{ "%.2f"|format(account.current_balance) }}
+                                    </div>
+                                    <div class="small text-gray">
+                                        {{ account.currency }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state py-3 text-center">
+                            <p class="small mb-0 text-gray">No accounts yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Financial Insights -->
+            <div class="chart-container">
+                <div class="chart-container-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>
+                        Financial Insights
+                    </h5>
+                </div>
+                <div class="mt-2">
+                    <div class="insight-card">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="account-icon me-3">
+                                    <i class="bi bi-lightning-charge"></i>
+                                </div>
+                                <div>
+                                    <div class="small fw-medium">Avg Daily Spend</div>
+                                    <div class="h5 mb-0">${{ "%.2f"|format(stats.average_expense) }}</div>
+                                </div>
+                            </div>
+                            <div class="small text-gray">30 days</div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="account-icon me-3">
+                                    <i class="bi bi-arrow-up-right"></i>
+                                </div>
+                                <div>
+                                    <div class="small fw-medium">Largest Income</div>
+                                    <div class="h5 mb-0 text-success">${{ "%.2f"|format(stats.largest_income) }}</div>
+                                </div>
+                            </div>
+                            <div class="small text-gray">This month</div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <div class="account-icon me-3">
+                                    <i class="bi bi-arrow-down-right"></i>
+                                </div>
+                                <div>
+                                    <div class="small fw-medium">Largest Expense</div>
+                                    <div class="h5 mb-0 text-danger">${{ "%.2f"|format(stats.largest_expense) }}</div>
+                                </div>
+                            </div>
+                            <div class="small text-gray">This month</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Live time display
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit'
+            });
+            document.getElementById('liveTime').textContent = timeStr;
+        }
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Floating Action Button - Fixed
+        const fab = document.getElementById('fab');
+        const fabMenu = document.getElementById('fabMenu');
+        
+        fab.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            fabMenu.classList.toggle('show');
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!fab.contains(e.target) && !fabMenu.contains(e.target)) {
+                fabMenu.classList.remove('show');
+            }
+        });
+        
+        // Period selector
+        const periodBtns = document.querySelectorAll('.period-btn');
+        periodBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                periodBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                loadChartData(this.dataset.period);
+            });
+        });
+        
+        // Chart toggle
+        const chartTypeBtns = document.querySelectorAll('.chart-type-btn');
+        chartTypeBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                chartTypeBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateChartType(this.dataset.chartType);
+            });
+        });
+        
+        // Refresh data button
+        document.getElementById('refreshData')?.addEventListener('click', function() {
+            const btn = this;
+            const icon = btn.querySelector('i');
+            
+            // Animate refresh
+            icon.style.transition = 'transform 0.5s ease';
+            icon.style.transform = 'rotate(360deg)';
+            
+            setTimeout(() => {
+                icon.style.transform = 'rotate(0deg)';
+            }, 500);
+            
+            // Update last updated time
+            document.getElementById('lastUpdated').textContent = 'Just now';
+            
+            // Reload page after animation
+            setTimeout(() => {
+                window.location.reload();
+            }, 500);
+        });
+        
+        // Initialize Charts
+        let incomeExpenseChart, expenseCategoryChart;
+        
+        function initializeCharts() {
+            // Expense by Category Chart
+            const categoryData = {
+                labels: [{% for cat in expense_by_category %}'{{ cat.name[:12] }}{% if cat.name|length > 12 %}...{% endif %}',{% endfor %}],
+                datasets: [{
+                    data: [{% for cat in expense_by_category %}{{ cat.total }},{% endfor %}],
+                    backgroundColor: [{% for cat in expense_by_category %}'{{ cat.color }}',{% endfor %}],
+                    borderWidth: 0
+                }]
+            };
+            
+            const categoryCanvas = document.getElementById('expenseCategoryChart');
+            if (categoryCanvas) {
+                const categoryCtx = categoryCanvas.getContext('2d');
+                
+                expenseCategoryChart = new Chart(categoryCtx, {
+                    type: 'doughnut',
+                    data: categoryData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: $${context.parsed.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        cutout: '70%'
+                    }
+                });
+            }
+            
+            // Income vs Expense Chart
+            const trendLabels = [{% for data in trend_data %}'{{ data.month }}',{% endfor %}];
+            const incomeData = [{% for data in trend_data %}{{ data.income }},{% endfor %}];
+            const expenseData = [{% for data in trend_data %}{{ data.expense }},{% endfor %}];
+            
+            const chartCanvas = document.getElementById('incomeExpenseChart');
+            if (chartCanvas) {
+                const chartCtx = chartCanvas.getContext('2d');
+                
+                incomeExpenseChart = new Chart(chartCtx, {
+                    type: 'line',
+                    data: {
+                        labels: trendLabels,
+                        datasets: [
+                            {
+                                label: 'Income',
+                                data: incomeData,
+                                borderColor: '#00ff9d',
+                                backgroundColor: 'rgba(0, 255, 157, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 2
+                            },
+                            {
+                                label: 'Expense',
+                                data: expenseData,
+                                borderColor: '#ff6b6b',
+                                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                                tension: 0.4,
+                                fill: true,
+                                borderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    boxWidth: 12,
+                                    padding: 10
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: 'rgba(255, 255, 255, 0.9)',
+                                bodyColor: 'rgba(255, 255, 255, 0.8)',
+                                borderColor: 'rgba(255, 255, 255, 0.1)',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.dataset.label}: $${context.parsed.y.toFixed(2)}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    maxRotation: 0
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)',
+                                    drawBorder: false
+                                },
+                                ticks: {
+                                    color: 'rgba(255, 255, 255, 0.7)',
+                                    callback: function(value) {
+                                        return '$' + value.toLocaleString();
+                                    }
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'nearest'
+                        },
+                        elements: {
+                            point: {
+                                radius: 2,
+                                hoverRadius: 4
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Initialize charts
+        initializeCharts();
+        
+        function updateChartType(type) {
+            if (!incomeExpenseChart) return;
+            
+            incomeExpenseChart.destroy();
+            
+            const chartCanvas = document.getElementById('incomeExpenseChart');
+            if (!chartCanvas) return;
+            
+            const chartCtx = chartCanvas.getContext('2d');
+            
+            const trendLabels = [{% for data in trend_data %}'{{ data.month }}',{% endfor %}];
+            const incomeData = [{% for data in trend_data %}{{ data.income }},{% endfor %}];
+            const expenseData = [{% for data in trend_data %}{{ data.expense }},{% endfor %}];
+            
+            incomeExpenseChart = new Chart(chartCtx, {
+                type: type,
+                data: {
+                    labels: trendLabels,
+                    datasets: [
+                        {
+                            label: 'Income',
+                            data: incomeData,
+                            backgroundColor: type === 'bar' ? 'rgba(0, 255, 157, 0.7)' : 'transparent',
+                            borderColor: '#00ff9d',
+                            borderWidth: type === 'bar' ? 0 : 2,
+                            tension: type === 'line' ? 0.4 : 0,
+                            fill: type === 'line'
+                        },
+                        {
+                            label: 'Expense',
+                            data: expenseData,
+                            backgroundColor: type === 'bar' ? 'rgba(255, 107, 107, 0.7)' : 'transparent',
+                            borderColor: '#ff6b6b',
+                            borderWidth: type === 'bar' ? 0 : 2,
+                            tension: type === 'line' ? 0.4 : 0,
+                            fill: type === 'line'
+                        }
+                    ]
+                },
+                options: incomeExpenseChart.options
+            });
+        }
+        
+        async function loadChartData(period) {
+            try {
+                const response = await fetch(`/api/dashboard-data?period=${period}`);
+                const data = await response.json();
+                
+                if (data.success && incomeExpenseChart) {
+                    incomeExpenseChart.data.labels = data.dates.map(date => {
+                        const d = new Date(date);
+                        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    });
+                    
+                    incomeExpenseChart.data.datasets[0].data = data.income;
+                    incomeExpenseChart.data.datasets[1].data = data.expense;
+                    
+                    incomeExpenseChart.update('none');
+                }
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+            }
+        }
+        
+        // Handle window resize
+        let resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(function() {
+                if (incomeExpenseChart) incomeExpenseChart.resize();
+                if (expenseCategoryChart) expenseCategoryChart.resize();
+            }, 250);
+        });
+        
+        // Add hover effects to stat cards
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+            });
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+        
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
 {% endblock %}

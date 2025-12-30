@@ -18,9 +18,15 @@ def index():
     selected_month = request.args.get('month')
     if selected_month:
         try:
-            year = int(selected_month[:4])
-            month = int(selected_month[5:7])
-        except:
+            # support formats: YYYY-MM or YYYYMM
+            if '-' in selected_month:
+                parts = selected_month.split('-')
+                year = int(parts[0])
+                month = int(parts[1])
+            else:
+                year = int(selected_month[:4])
+                month = int(selected_month[4:6])
+        except Exception:
             today = date.today()
             year = today.year
             month = today.month
@@ -81,9 +87,9 @@ def index():
                          month_name=f"{calendar.month_name[month]} {year}",
                          total_budget=total_budget,
                          total_spent=total_spent,
-                         prev_month=f"{prev_year}-{prev_month:02d}",
-                         next_month=f"{next_year}-{next_month:02d}",
-                         current_month=f"{year}-{month:02d}")
+                         prev_month=f"{prev_year}{prev_month:02d}",
+                         next_month=f"{next_year}{next_month:02d}",
+                         current_month=f"{year}{month:02d}")
 
 @budgets_bp.route('/create', methods=['GET', 'POST'])
 @login_required
@@ -146,6 +152,31 @@ def edit(budget_id):
                                    type=TransactionType.EXPENSE,
                                    is_active=True
                                ).all()]
+
+    # Pre-compute spent amount for this budget's month so templates show accurate numbers
+    try:
+        year = budget.month // 100
+        month = budget.month % 100
+        month_start = date(year, month, 1)
+        if month == 12:
+            month_end = date(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            month_end = date(year, month + 1, 1) - timedelta(days=1)
+
+        spent = db.session.query(
+            func.coalesce(func.sum(Transaction.amount), 0)
+        ).filter(
+            Transaction.user_id == current_user.id,
+            Transaction.category_id == budget.category_id,
+            Transaction.type == TransactionType.EXPENSE,
+            Transaction.date >= month_start,
+            Transaction.date <= month_end
+        ).scalar() or 0
+
+        budget.spent_amount = float(spent)
+    except Exception:
+        # If anything goes wrong, default to 0 (templates handle this safely)
+        budget.spent_amount = 0.0
     
     if form.validate_on_submit():
         # Check if budget already exists for this category/month (different ID)
@@ -238,10 +269,23 @@ def quick_setup():
     if not month:
         return jsonify({'error': 'Month required'}), 400
     
-    # Parse month
-    year = int(month[:4])
-    month_num = int(month[4:6])
+    # Parse month (support YYYYMM or YYYY-MM)
+    try:
+        if '-' in month:
+            parts = month.split('-')
+            year = int(parts[0])
+            month_num = int(parts[1])
+        else:
+            year = int(month[:4])
+            month_num = int(month[4:6])
+        if month_num < 1 or month_num > 12:
+            raise ValueError('Invalid month number')
+    except Exception:
+        return jsonify({'error': 'Invalid month format. Expected YYYYMM or YYYY-MM.'}), 400
     
+    # Normalize month to YYYYMM integer (month_key)
+    month_key = int(f"{year}{month_num:02d}")
+
     # Get previous month
     if month_num == 1:
         prev_month = 12
@@ -249,13 +293,13 @@ def quick_setup():
     else:
         prev_month = month_num - 1
         prev_year = year
-    
+
     prev_month_start = date(prev_year, prev_month, 1)
     if prev_month == 12:
         prev_month_end = date(prev_year + 1, 1, 1) - timedelta(days=1)
     else:
         prev_month_end = date(prev_year, prev_month + 1, 1) - timedelta(days=1)
-    
+
     # Get spending by category from previous month
     spending = db.session.query(
         Category.id,
@@ -270,24 +314,24 @@ def quick_setup():
         Transaction.date <= prev_month_end,
         Category.is_active == True
     ).group_by(Category.id, Category.name).all()
-    
+
     # Create budgets based on previous spending (with 10% reduction for savings goal)
     budgets_created = 0
     for item in spending:
         if item.spent > 0:
             budget_amount = float(item.spent) * 0.9  # 10% reduction
-            
+
             # Check if budget already exists
             existing = Budget.query.filter_by(
                 user_id=current_user.id,
                 category_id=item.id,
-                month=int(month)
+                month=month_key
             ).first()
-            
+
             if not existing:
                 budget = Budget(
                     amount=budget_amount,
-                    month=int(month),
+                    month=month_key,
                     user_id=current_user.id,
                     category_id=item.id,
                     created_at=datetime.utcnow(),
@@ -295,9 +339,13 @@ def quick_setup():
                 )
                 db.session.add(budget)
                 budgets_created += 1
-    
-    db.session.commit()
-    
+
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create budgets', 'detail': str(e)}), 500
+
     return jsonify({
         'success': True,
         'message': f'{budgets_created} budgets created based on previous month spending'

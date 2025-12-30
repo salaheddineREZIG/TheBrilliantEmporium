@@ -25,12 +25,19 @@ def index():
         is_active=True
     ).order_by(Category.name).all()
     
-    # Get transaction counts
-    for category in expense_categories + income_categories:
+    # Get transaction counts and subcategories
+    all_categories = expense_categories + income_categories
+    for category in all_categories:
         category.transaction_count = Transaction.query.filter_by(
             category_id=category.id,
             user_id=current_user.id
         ).count()
+        
+        # Get subcategories
+        category.subcategories = Category.query.filter_by(
+            parent_id=category.id,
+            is_active=True
+        ).all()
     
     return render_template('categories/index.html',
                          expense_categories=expense_categories,
@@ -42,8 +49,12 @@ def create():
     """Create new category"""
     form = CategoryForm()
     
+    # Set default values from URL parameters
+    if request.args.get('type'):
+        form.type.data = request.args.get('type')
+    
     # Populate parent category choices
-    form.parent_id.choices = [('', 'None (Top Level)')] + [
+    form.parent_id.choices = [(0, 'None (Top Level)')] + [
         (cat.id, f"{cat.icon} {cat.name}") 
         for cat in Category.query.filter_by(
             user_id=current_user.id,
@@ -52,6 +63,14 @@ def create():
         ).all()
     ]
     
+    # Common icons for selection
+    icons = ['📁', '💰', '🛒', '🍽️', '🚗', '🏠', '🏥', '🎓', '🎬', '🏋️', '✈️', '👕', 
+             '📱', '💻', '🎮', '📚', '🎵', '🎨', '⚽', '🎭', '💡', '🔧', '🎁', '💸']
+    
+    # Common colors for quick selection
+    quick_colors = ['#FF6B6B', '#FFD166', '#06D6A0', '#118AB2', '#073B4C',
+                   '#EF476F', '#7209B7', '#3A86FF', '#FB5607', '#8338EC']
+    
     if form.validate_on_submit():
         category = Category(
             name=form.name.data,
@@ -59,7 +78,7 @@ def create():
             icon=form.icon.data,
             color=form.color.data,
             user_id=current_user.id,
-            parent_id=form.parent_id.data if form.parent_id.data else None,
+            parent_id=form.parent_id.data if form.parent_id.data and form.parent_id.data != 0 else None,
             created_at=datetime.utcnow(),
             is_system=False,
             is_active=True
@@ -71,7 +90,10 @@ def create():
         flash('Category created successfully!', 'success')
         return redirect(url_for('categories.index'))
     
-    return render_template('categories/create.html', form=form)
+    return render_template('categories/create.html', 
+                         form=form, 
+                         icons=icons, 
+                         quick_colors=quick_colors)
 
 @categories_bp.route('/<int:category_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -95,29 +117,63 @@ def edit(category_id):
         is_active=True
     ).all()
     
-    # Filter out self and its subcategories
-    available_parents = [cat for cat in all_categories 
-                        if cat.id != category_id and 
-                        not self_or_descendant(cat, category_id, all_categories)]
+    # Helper function to check if a category is self or descendant
+    def is_self_or_descendant(cat, target_id):
+        if cat.id == target_id:
+            return True
+        # Check descendants
+        for subcat in cat.subcategories:
+            if is_self_or_descendant(subcat, target_id):
+                return True
+        return False
     
-    form.parent_id.choices = [('', 'None (Top Level)')] + [
+    # Get available parents (not self or descendants)
+    available_parents = [cat for cat in all_categories 
+                        if cat.parent_id is None and 
+                        not is_self_or_descendant(cat, category_id) and
+                        cat.id != category_id]
+    
+    form.parent_id.choices = [(0, 'None (Top Level)')] + [
         (cat.id, f"{cat.icon} {cat.name}") 
-        for cat in available_parents if cat.parent_id is None
+        for cat in available_parents
     ]
+    
+    # Common icons and colors
+    icons = ['📁', '💰', '🛒', '🍽️', '🚗', '🏠', '🏥', '🎓', '🎬', '🏋️', '✈️', '👕', 
+             '📱', '💻', '🎮', '📚', '🎵', '🎨', '⚽', '🎭', '💡', '🔧', '🎁', '💸']
+    
+    quick_colors = ['#FF6B6B', '#FFD166', '#06D6A0', '#118AB2', '#073B4C',
+                   '#EF476F', '#7209B7', '#3A86FF', '#FB5607', '#8338EC']
+    
+    # Get transaction count
+    category.transaction_count = Transaction.query.filter_by(
+        category_id=category.id,
+        user_id=current_user.id
+    ).count()
+    
+    # Get subcategories
+    category.subcategories = Category.query.filter_by(
+        parent_id=category.id,
+        is_active=True
+    ).all()
     
     if form.validate_on_submit():
         category.name = form.name.data
         category.type = TransactionType(form.type.data)
         category.icon = form.icon.data
         category.color = form.color.data
-        category.parent_id = form.parent_id.data if form.parent_id.data else None
+        category.parent_id = form.parent_id.data if form.parent_id.data and form.parent_id.data != 0 else None
         
         db.session.commit()
         
         flash('Category updated successfully!', 'success')
         return redirect(url_for('categories.index'))
     
-    return render_template('categories/edit.html', form=form, category=category)
+    return render_template('categories/edit.html', 
+                         form=form, 
+                         category=category,
+                         icons=icons, 
+                         quick_colors=quick_colors)
 
 @categories_bp.route('/<int:category_id>/delete', methods=['POST'])
 @login_required

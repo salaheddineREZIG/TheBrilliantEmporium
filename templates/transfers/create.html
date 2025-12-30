@@ -1,0 +1,636 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Create Transfer - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .form-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.2s;
+    }
+    
+    .info-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.4s;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-step {
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: slideInLeft 0.5s ease forwards;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .account-selector {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    
+    .account-selector.animate {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    
+    .account-selector:hover {
+        background-color: rgba(255, 255, 255, 0.05) !important;
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .account-selector.selected {
+        border-color: var(--accent) !important;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05)) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(255, 255, 255, 0.1);
+    }
+    
+    .transfer-arrow {
+        font-size: 2rem;
+        color: var(--accent);
+        animation: arrowPulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes arrowPulse {
+        0%, 100% { transform: translateX(0); opacity: 1; }
+        50% { transform: translateX(10px); opacity: 0.7; }
+    }
+    
+    .balance-preview {
+        opacity: 0;
+        transform: scale(0.9);
+        transition: all 0.3s ease;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    }
+    
+    .balance-preview.show {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .balance-change {
+        font-size: 0.9rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        margin-left: 10px;
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        transition: all 0.3s ease;
+        z-index: 1;
+    }
+    
+    .form-control:focus + .input-icon {
+        color: var(--accent);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .tip-item {
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border-left: 3px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        border-left-color: var(--accent);
+        transform: translateX(5px);
+    }
+    
+    .tip-item i {
+        color: var(--accent);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover i {
+        transform: rotate(10deg) scale(1.1);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    }
+    
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.8s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .currency-badge {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <!-- Page Header -->
+            <div class="mb-4 fade-in">
+                <a href="{{ url_for('transfers.index') }}" class="btn btn-outline-accent btn-sm mb-3 hover-lift">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Transfers
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-arrow-left-right text-accent me-2"></i>Transfer Money
+                </h1>
+                <p class="text-gray">Move money between your accounts</p>
+            </div>
+            
+            <!-- Transfer Form -->
+            <div class="card form-card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('transfers.create') }}" id="transferForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Amount -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.1s">
+                            <label class="form-label">Transfer Amount *</label>
+                            <div class="position-relative">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-dark-gray border-secondary"><i class="bi bi-currency-dollar"></i></span>
+                                    {{ form.amount(class="form-control ps-4", placeholder="0.00", step="0.01", min="0.01") }}
+                                </div>
+                                <div class="input-icon" style="left: 60px;">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.amount.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Date -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.2s">
+                            <label class="form-label">Transfer Date *</label>
+                            <div class="position-relative">
+                                {{ form.date(class="form-control ps-4", type="date") }}
+                                <div class="input-icon">
+                                    <i class="bi bi-calendar"></i>
+                                </div>
+                            </div>
+                            {% if form.date.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.date.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Account Selection -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.3s">
+                            <label class="form-label mb-3">Select Accounts *</label>
+                            <div class="row align-items-center">
+                                <!-- From Account -->
+                                <div class="col-md-5">
+                                    <label class="form-label text-gray">From Account</label>
+                                    <div class="accounts-list" id="fromAccountsList">
+                                        {% for account in accounts if account.is_active %}
+                                        <div class="account-selector card mb-2 bg-dark-gray border-gray" 
+                                             data-delay="{{ loop.index * 50 }}"
+                                             data-id="{{ account.id }}"
+                                             data-name="{{ account.name }}"
+                                             data-balance="{{ account.current_balance }}"
+                                             data-currency="{{ account.currency }}"
+                                             onclick="selectAccount(this, 'from')">
+                                            <div class="card-body py-3">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <i class="bi bi-wallet2 text-accent me-2"></i>
+                                                            <strong>{{ account.name }}</strong>
+                                                        </div>
+                                                        <div class="text-gray small">{{ account.type.value|replace('_', ' ')|title }}</div>
+                                                    </div>
+                                                    <div class="text-end position-relative">
+                                                        <div class="text-light fs-5">${{ "%.2f"|format(account.current_balance) }}</div>
+                                                        <span class="currency-badge">{{ account.currency }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <input type="hidden" id="from_account_id" name="from_account_id" value="{{ form.from_account_id.data or '' }}">
+                                    {% if form.from_account_id.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.from_account_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Arrow -->
+                                <div class="col-md-2 text-center">
+                                    <div class="transfer-arrow my-4">
+                                        <i class="bi bi-arrow-right-circle"></i>
+                                    </div>
+                                </div>
+                                
+                                <!-- To Account -->
+                                <div class="col-md-5">
+                                    <label class="form-label text-gray">To Account</label>
+                                    <div class="accounts-list" id="toAccountsList">
+                                        {% for account in accounts if account.is_active %}
+                                        <div class="account-selector card mb-2 bg-dark-gray border-gray"
+                                             data-delay="{{ loop.index * 50 }}"
+                                             data-id="{{ account.id }}"
+                                             data-name="{{ account.name }}"
+                                             data-balance="{{ account.current_balance }}"
+                                             data-currency="{{ account.currency }}"
+                                             onclick="selectAccount(this, 'to')">
+                                            <div class="card-body py-3">
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <div>
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <i class="bi bi-wallet2 text-success me-2"></i>
+                                                            <strong>{{ account.name }}</strong>
+                                                        </div>
+                                                        <div class="text-gray small">{{ account.type.value|replace('_', ' ')|title }}</div>
+                                                    </div>
+                                                    <div class="text-end position-relative">
+                                                        <div class="text-light fs-5">${{ "%.2f"|format(account.current_balance) }}</div>
+                                                        <span class="currency-badge">{{ account.currency }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    <input type="hidden" id="to_account_id" name="to_account_id" value="{{ form.to_account_id.data or '' }}">
+                                    {% if form.to_account_id.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {% for error in form.to_account_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Balance Preview -->
+                        <div class="balance-preview card bg-dark-gray mb-4" id="balancePreview">
+                            <div class="card-body">
+                                <h6 class="mb-3"><i class="bi bi-calculator text-accent me-2"></i>Balance After Transfer</h6>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-gray">From Account:</span>
+                                            <span id="fromAccountName" class="text-light">-</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-gray">New Balance:</span>
+                                            <span class="d-flex align-items-center">
+                                                <span id="fromNewBalance" class="text-danger fw-bold">-</span>
+                                                <span id="fromBalanceChange" class="balance-change bg-danger ms-2"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="text-gray">To Account:</span>
+                                            <span id="toAccountName" class="text-light">-</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="text-gray">New Balance:</span>
+                                            <span class="d-flex align-items-center">
+                                                <span id="toNewBalance" class="text-success fw-bold">-</span>
+                                                <span id="toBalanceChange" class="balance-change bg-success ms-2"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.4s">
+                            <label class="form-label">Description (Optional)</label>
+                            <div class="position-relative">
+                                {{ form.description(class="form-control ps-4", placeholder="Add a note about this transfer...", rows="2") }}
+                                <div class="input-icon">
+                                    <i class="bi bi-chat-left-text"></i>
+                                </div>
+                            </div>
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-5 form-step" style="animation-delay: 0.5s">
+                            <a href="{{ url_for('transfers.index') }}" class="btn btn-outline-accent hover-lift">Cancel</a>
+                            <button type="submit" class="btn btn-accent hover-lift px-4" id="submitBtn" disabled>
+                                <i class="bi bi-check-circle me-2"></i> Complete Transfer
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Transfer Information -->
+            <div class="card info-card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-info-circle text-accent me-2"></i>About Transfers</h6>
+                    <div class="tip-item">
+                        <i class="bi bi-arrow-left-right me-2"></i>
+                        Transfers are not considered income or expenses - they just move money between accounts
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-wallet2 me-2"></i>
+                        Both accounts' balances will be updated immediately upon transfer completion
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-shield-check me-2"></i>
+                        You cannot transfer money to the same account for security reasons
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fromAccountInput = document.getElementById('from_account_id');
+        const toAccountInput = document.getElementById('to_account_id');
+        const amountInput = document.getElementById('{{ form.amount.id }}');
+        const balancePreview = document.getElementById('balancePreview');
+        const submitBtn = document.getElementById('submitBtn');
+        const dateInput = document.getElementById('{{ form.date.id }}');
+        
+        // Set default date to today
+        if (!dateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.value = today;
+        }
+        
+        let selectedFromAccount = null;
+        let selectedToAccount = null;
+        
+        // Animate account selectors
+        const accountSelectors = document.querySelectorAll('.account-selector');
+        accountSelectors.forEach((selector, index) => {
+            const delay = parseInt(selector.getAttribute('data-delay')) || index * 50;
+            setTimeout(() => {
+                selector.style.animationDelay = `${delay}ms`;
+                selector.classList.add('animate');
+            }, 100);
+        });
+        
+        // Animate form steps
+        const formSteps = document.querySelectorAll('.form-step');
+        formSteps.forEach((step, index) => {
+            setTimeout(() => {
+                step.style.animation = `slideInLeft 0.5s ease forwards ${index * 0.1}s`;
+            }, 100);
+        });
+        
+        window.selectAccount = function(element, type) {
+            const id = element.getAttribute('data-id');
+            const name = element.getAttribute('data-name');
+            const balance = parseFloat(element.getAttribute('data-balance'));
+            const currency = element.getAttribute('data-currency');
+            
+            if (type === 'from') {
+                // Deselect all from accounts
+                document.querySelectorAll('#fromAccountsList .account-selector').forEach(selector => {
+                    selector.classList.remove('selected');
+                });
+                
+                // Select clicked account
+                element.classList.add('selected');
+                selectedFromAccount = { id, name, balance, currency };
+                fromAccountInput.value = id;
+                
+                // Reset to account if same as from account
+                if (selectedToAccount && selectedToAccount.id === id) {
+                    selectedToAccount = null;
+                    toAccountInput.value = '';
+                    document.querySelectorAll('#toAccountsList .account-selector').forEach(selector => {
+                        selector.classList.remove('selected');
+                    });
+                }
+            } else if (type === 'to') {
+                // Deselect all to accounts
+                document.querySelectorAll('#toAccountsList .account-selector').forEach(selector => {
+                    selector.classList.remove('selected');
+                });
+                
+                // Select clicked account
+                element.classList.add('selected');
+                selectedToAccount = { id, name, balance, currency };
+                toAccountInput.value = id;
+                
+                // Reset from account if same as to account
+                if (selectedFromAccount && selectedFromAccount.id === id) {
+                    selectedFromAccount = null;
+                    fromAccountInput.value = '';
+                    document.querySelectorAll('#fromAccountsList .account-selector').forEach(selector => {
+                        selector.classList.remove('selected');
+                    });
+                }
+            }
+            
+            // Validate transfer
+            validateTransfer();
+            updateBalancePreview();
+        };
+        
+        function validateTransfer() {
+            const amount = parseFloat(amountInput.value) || 0;
+            
+            let isValid = true;
+            let errorMessage = '';
+            
+            // Check if accounts are selected
+            if (!selectedFromAccount || !selectedToAccount) {
+                isValid = false;
+                errorMessage = 'Please select both accounts';
+            }
+            // Check if transferring to same account
+            else if (selectedFromAccount.id === selectedToAccount.id) {
+                isValid = false;
+                errorMessage = 'Cannot transfer to the same account';
+            }
+            // Check amount
+            else if (amount <= 0) {
+                isValid = false;
+                errorMessage = 'Please enter a valid amount';
+            }
+            // Check sufficient balance
+            else if (amount > selectedFromAccount.balance) {
+                isValid = false;
+                errorMessage = 'Insufficient balance in source account';
+            }
+            
+            submitBtn.disabled = !isValid;
+            showErrorMessage(errorMessage);
+            
+            return isValid;
+        }
+        
+        function updateBalancePreview() {
+            if (!selectedFromAccount || !selectedToAccount || !amountInput.value) {
+                balancePreview.classList.remove('show');
+                return;
+            }
+            
+            const amount = parseFloat(amountInput.value) || 0;
+            const fromNewBalance = selectedFromAccount.balance - amount;
+            const toNewBalance = selectedToAccount.balance + amount;
+            
+            // Update preview content
+            document.getElementById('fromAccountName').textContent = selectedFromAccount.name;
+            document.getElementById('toAccountName').textContent = selectedToAccount.name;
+            
+            document.getElementById('fromNewBalance').textContent = `$${fromNewBalance.toFixed(2)}`;
+            document.getElementById('toNewBalance').textContent = `$${toNewBalance.toFixed(2)}`;
+            
+            document.getElementById('fromBalanceChange').textContent = `-$${amount.toFixed(2)}`;
+            document.getElementById('toBalanceChange').textContent = `+$${amount.toFixed(2)}`;
+            
+            // Show preview with animation
+            if (!balancePreview.classList.contains('show')) {
+                balancePreview.classList.add('show');
+            }
+        }
+        
+        function showErrorMessage(message) {
+            // Remove existing error
+            const existingError = document.querySelector('.transfer-error');
+            if (existingError) existingError.remove();
+            
+            if (!message) return;
+            
+            // Create error element
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger mt-3 transfer-error';
+            errorDiv.innerHTML = `
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>${message}
+                <button type="button" class="btn-close btn-close-white float-end" onclick="this.parentElement.remove()"></button>
+            `;
+            
+            // Insert after form
+            const form = document.querySelector('#transferForm');
+            form.parentNode.insertBefore(errorDiv, form.nextSibling);
+        }
+        
+        // Event listeners
+        amountInput.addEventListener('input', function() {
+            validateTransfer();
+            updateBalancePreview();
+        });
+        
+        // Initialize from URL parameters
+        {% if request.args.get('from_account_id') %}
+        setTimeout(() => {
+            const fromAccountId = {{ request.args.get('from_account_id')|int }};
+            const fromAccount = document.querySelector(`#fromAccountsList .account-selector[data-id="${fromAccountId}"]`);
+            if (fromAccount) {
+                fromAccount.click();
+            }
+        }, 500);
+        {% endif %}
+        
+        {% if request.args.get('to_account_id') %}
+        setTimeout(() => {
+            const toAccountId = {{ request.args.get('to_account_id')|int }};
+            const toAccount = document.querySelector(`#toAccountsList .account-selector[data-id="${toAccountId}"]`);
+            if (toAccount) {
+                toAccount.click();
+            }
+        }, 500);
+        {% endif %}
+        
+        // Form submission animation
+        const form = document.getElementById('transferForm');
+        form.addEventListener('submit', function(e) {
+            if (!validateTransfer()) {
+                e.preventDefault();
+                return;
+            }
+            
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Processing...';
+            submitBtn.disabled = true;
+            
+            // Animate form submission
+            const formCard = document.querySelector('.form-card');
+            formCard.style.transition = 'all 0.3s ease';
+            formCard.style.opacity = '0.8';
+        });
+        
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Enter to submit form
+            if (e.ctrlKey && e.key === 'Enter' && !submitBtn.disabled) {
+                e.preventDefault();
+                submitBtn.click();
+            }
+        });
+    });
+</script>
+{% endblock %}

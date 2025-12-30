@@ -88,7 +88,10 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         
         if user and check_password_hash(user.hashed_password, form.password.data):
-            login_user(user, remember=False)
+            # Use the remember_me field if present on the form
+            remember = getattr(form, 'remember_me', None)
+            remember_value = remember.data if remember is not None else False
+            login_user(user, remember=remember_value)
             
             # Update last login time
             user.last_login = datetime.utcnow()
@@ -156,7 +159,9 @@ def logout():
     """Handle user logout"""
     logout_user()
     flash('You have been logged out successfully.', 'info')
-    return redirect(url_for('index'))
+    # Render the landing page directly to avoid a redirect loop that
+    # sometimes sends users back to the login page.
+    return render_template('landing.html', logout_message='You have been logged out successfully.')
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():

@@ -4,6 +4,9 @@ SELECT * FROM categories;
 SELECT * FROM transactions;
 SELECT * FROM budgets;
 SELECT * FROM transfers;
+.tables
+.schema
+
 
 
 --DELETE FROM users;

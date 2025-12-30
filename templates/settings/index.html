@@ -1,0 +1,921 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Settings - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .settings-card {
+        background: linear-gradient(145deg, #1a1a1a 0%, #121212 100%);
+        border: 1px solid #2d2d2d;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .settings-card:hover {
+        border-color: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+    
+    .settings-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 15px;
+    }
+    
+    .stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        background: linear-gradient(135deg, #ffffff 0%, #a0a0a0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .danger-zone {
+        background: rgba(220, 53, 69, 0.1);
+        border: 2px dashed rgba(220, 53, 69, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+    }
+    
+    .tab-content {
+        animation: fadeIn 0.5s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .form-section {
+        padding: 20px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+    }
+    
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 60px;
+        height: 30px;
+        margin-right: 10px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #2d2d2d;
+        transition: .4s;
+        border-radius: 34px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background: linear-gradient(135deg, #ffffff 0%, #e6e6e6 100%);
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(30px);
+    }
+    
+    .export-option {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+    
+    .export-option:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-3px);
+        border-color: rgba(255, 255, 255, 0.06);
+    }
+    
+    .import-dropzone {
+        border: 2px dashed rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        padding: 40px;
+        text-align: center;
+        background: rgba(255, 255, 255, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .import-dropzone.dragover {
+        border-color: rgba(255, 255, 255, 0.06);
+        background: rgba(255, 255, 255, 0.03);
+    }
+    
+    .backup-status {
+        background: rgba(0, 255, 157, 0.1);
+        border: 1px solid rgba(0, 255, 157, 0.2);
+        border-radius: 10px;
+        padding: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-3">
+                <div class="settings-icon">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <div>
+                    <h1 class="h2 fw-bold mb-0">Settings & Preferences</h1>
+                    <p class="text-gray mb-0">Customize your financial management experience</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Left Navigation -->
+        <div class="col-lg-3 mb-4">
+            <div class="settings-card">
+                <div class="card-body">
+                    <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist">
+                        <a class="nav-link active d-flex align-items-center py-3" id="general-tab" data-bs-toggle="pill" href="#general">
+                            <i class="bi bi-sliders me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">General</div>
+                                <small class="text-gray">Basic application settings</small>
+                            </div>
+                        </a>
+                        <a class="nav-link d-flex align-items-center py-3" id="preferences-tab" data-bs-toggle="pill" href="#preferences">
+                            <i class="bi bi-person-circle me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">Preferences</div>
+                                <small class="text-gray">Customize your experience</small>
+                            </div>
+                        </a>
+                        <a class="nav-link d-flex align-items-center py-3" id="import-export-tab" data-bs-toggle="pill" href="#import-export">
+                            <i class="bi bi-arrow-left-right me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">Import/Export</div>
+                                <small class="text-gray">Manage your data</small>
+                            </div>
+                        </a>
+                        <a class="nav-link d-flex align-items-center py-3" id="notifications-tab" data-bs-toggle="pill" href="#notifications">
+                            <i class="bi bi-bell me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">Notifications</div>
+                                <small class="text-gray">Alerts and reminders</small>
+                            </div>
+                        </a>
+                        <a class="nav-link d-flex align-items-center py-3" id="account-tab" data-bs-toggle="pill" href="#account">
+                            <i class="bi bi-shield me-3 fs-5"></i>
+                            <div>
+                                <div class="fw-semibold">Account</div>
+                                <small class="text-gray">Security and data</small>
+                            </div>
+                        </a>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="mt-4 pt-4 border-top border-gray">
+                        <h6 class="text-gray mb-3">Data Overview</h6>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-number">{{ accounts_count }}</div>
+                                    <small class="text-gray">Accounts</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-number">{{ transactions_count }}</div>
+                                    <small class="text-gray">Transactions</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-number">{{ categories_count }}</div>
+                                    <small class="text-gray">Categories</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-number">{{ budgets_count }}</div>
+                                    <small class="text-gray">Budgets</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Content -->
+        <div class="col-lg-9">
+            <div class="tab-content" id="settingsTabsContent">
+                <!-- General Settings -->
+                <div class="tab-pane fade show active" id="general">
+                    <div class="settings-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-sliders text-accent me-2"></i>General Settings
+                            </h5>
+                            
+                            <form method="POST" action="{{ url_for('settings.update') }}">
+                                {{ settings_form.hidden_tag() }}
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">Appearance</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Theme</label>
+                                            {{ settings_form.theme(class="form-select") }}
+                                            <small class="text-gray">Choose your preferred color scheme</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">Regional Settings</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Default Currency</label>
+                                            {{ settings_form.default_currency(class="form-select") }}
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Date Format</label>
+                                            {{ settings_form.date_format(class="form-select") }}
+                                        </div>
+                                        
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">First Day of Week</label>
+                                            {{ settings_form.first_day_of_week(class="form-select") }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end mt-4">
+                                    <button type="submit" class="btn btn-accent px-4" name="update_general">
+                                        <i class="bi bi-check-circle me-1"></i> Save Changes
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Preferences -->
+                <div class="tab-pane fade" id="preferences">
+                    <div class="settings-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-person-circle text-accent me-2"></i>Preferences
+                            </h5>
+                            
+                            <form id="preferencesForm">
+                                {{ preferences_form.hidden_tag() }}
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">Dashboard Preferences</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.show_charts(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.show_charts.id }}">
+                                                    Show charts on dashboard
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.show_recent(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.show_recent.id }}">
+                                                    Show recent transactions
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.show_budgets(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.show_budgets.id }}">
+                                                    Show budget progress
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">Transaction Preferences</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.auto_categorize(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.auto_categorize.id }}">
+                                                    Auto-categorize transactions
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.duplicate_detection(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.duplicate_detection.id }}">
+                                                    Detect duplicate transactions
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.require_description(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.require_description.id }}">
+                                                    Require description for transactions
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">In-App Notifications</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.monthly_report(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.monthly_report.id }}">
+                                                    Monthly financial report
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.app_budget_alerts(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.app_budget_alerts.id }}">
+                                                    Budget alerts
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.app_bill_reminders(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.app_bill_reminders.id }}">
+                                                    Bill payment reminders
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ preferences_form.app_goals_update(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ preferences_form.app_goals_update.id }}">
+                                                    Goal progress updates
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-accent px-4" id="savePreferencesBtn">
+                                        <i class="bi bi-check-circle me-1"></i> Save Preferences
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Import/Export -->
+                <div class="tab-pane fade" id="import-export">
+                    <div class="settings-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-arrow-left-right text-accent me-2"></i>Import & Export Data
+                            </h5>
+                            
+                            <!-- Backup Status -->
+                            <div class="backup-status mb-4">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-cloud-check text-success me-3 fs-4"></i>
+                                    <div>
+                                        <h6 class="mb-0">Last Backup</h6>
+                                        <small class="text-gray">Your data is automatically backed up daily</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Export Section -->
+                            <div class="mb-5">
+                                <h6 class="mb-3">Export Data</h6>
+                                <p class="text-gray mb-4">Download your financial data for backup or migration</p>
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <a href="{{ url_for('settings.export_data') }}" class="export-option text-decoration-none">
+                                            <i class="bi bi-filetype-json fs-1 mb-3"></i>
+                                            <h6>Full JSON Export</h6>
+                                            <small class="text-gray">Complete data including settings</small>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <a href="{{ url_for('settings.export_csv') }}" class="export-option text-decoration-none">
+                                            <i class="bi bi-filetype-csv fs-1 mb-3"></i>
+                                            <h6>CSV Export</h6>
+                                            <small class="text-gray">Transactions only, spreadsheet-ready</small>
+                                        </a>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="export-option" onclick="exportBackup()" style="cursor: pointer;">
+                                            <i class="bi bi-database fs-1 mb-3"></i>
+                                            <h6>Quick Backup</h6>
+                                            <small class="text-gray">Download backup summary</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Import Section -->
+                            <div>
+                                <h6 class="mb-3">Import Data</h6>
+                                <p class="text-gray mb-3">Import transactions from other financial apps or files</p>
+                                
+                                <div class="import-dropzone mb-4" id="importDropzone">
+                                    <i class="bi bi-cloud-arrow-up fs-1 mb-3"></i>
+                                    <h5>Drop files here or click to upload</h5>
+                                    <p class="text-gray">Supports CSV and JSON formats</p>
+                                    <small class="text-gray">Max file size: 10MB</small>
+                                </div>
+                                
+                                <form method="POST" action="{{ url_for('settings.import_data') }}" enctype="multipart/form-data" id="importForm">
+                                    {{ import_form.hidden_tag() }}
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Import Type</label>
+                                            {{ import_form.import_type(class="form-select", id="importType") }}
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label">Select File</label>
+                                            <input type="file" class="form-control" name="file" id="importFile" accept=".csv,.json" required>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-check mb-4">
+                                        <input class="form-check-input" type="checkbox" id="overwriteData" name="overwrite">
+                                        <label class="form-check-label text-danger" for="overwriteData">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>
+                                            Overwrite existing data (use with caution)
+                                        </label>
+                                    </div>
+                                    
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        CSV files should have columns: Date, Amount, Description, Account, Category
+                                    </div>
+                                    
+                                    <div class="d-flex justify-content-end">
+                                        <button type="submit" class="btn btn-accent px-4" id="importBtn">
+                                            <i class="bi bi-upload me-1"></i> Import Data
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notifications -->
+                <div class="tab-pane fade" id="notifications">
+                    <div class="settings-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-bell text-accent me-2"></i>Notification Settings
+                            </h5>
+                            
+                            <form method="POST" action="{{ url_for('settings.update') }}">
+                                {{ settings_form.hidden_tag() }}
+                                
+                                <div class="form-section">
+                                    <h6 class="mb-3">Email Notifications</h6>
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ settings_form.budget_alerts(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ settings_form.budget_alerts.id }}">
+                                                    Budget alerts when approaching limits
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ settings_form.large_transactions(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ settings_form.large_transactions.id }}">
+                                                    Large transaction alerts
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <div class="form-check d-flex align-items-center">
+                                                {{ settings_form.weekly_summary(class="form-check-input me-2") }}
+                                                <label class="form-check-label" for="{{ settings_form.weekly_summary.id }}">
+                                                    Weekly summary emails
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-end">
+                                    <button type="submit" class="btn btn-accent px-4" name="update_notifications">
+                                        <i class="bi bi-check-circle me-1"></i> Save Notification Settings
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Account Settings -->
+                <div class="tab-pane fade" id="account">
+                    <div class="settings-card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-4">
+                                <i class="bi bi-shield text-accent me-2"></i>Account Settings
+                            </h5>
+                            
+                            <!-- Account Information -->
+                            <div class="mb-5">
+                                <h6 class="mb-3">Account Information</h6>
+                                <div class="card bg-dark-gray border-gray">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                <small class="text-gray d-block">Account ID</small>
+                                                <strong>{{ current_user.id }}</strong>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <small class="text-gray d-block">Member Since</small>
+                                                <strong>{{ current_user.created_at.strftime('%B %d, %Y') }}</strong>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <small class="text-gray d-block">Email</small>
+                                                <strong>{{ current_user.email }}</strong>
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                <small class="text-gray d-block">Last Login</small>
+                                                <strong>
+                                                    {% if current_user.last_login %}
+                                                    {{ current_user.last_login.strftime('%B %d, %Y %H:%M') }}
+                                                    {% else %}
+                                                    Never
+                                                    {% endif %}
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Danger Zone -->
+                            <div class="border-top border-gray pt-4">
+                                <div class="danger-zone">
+                                    <h6 class="mb-3 text-danger">
+                                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Danger Zone
+                                    </h6>
+                                    <p class="text-gray mb-4">These actions are irreversible. Please proceed with caution.</p>
+                                    
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#clearDataModal">
+                                                <i class="bi bi-eraser me-1"></i> Clear All Data
+                                            </button>
+                                            <small class="text-gray d-block mt-1">Removes all transactions but keeps your account</small>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                                <i class="bi bi-trash me-1"></i> Delete Account
+                                            </button>
+                                            <small class="text-gray d-block mt-1">Permanently deletes your account and all data</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Data Modal -->
+<div class="modal fade" id="clearDataModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-warning">
+            <div class="modal-header border-warning">
+                <h5 class="modal-title text-light">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                    Clear All Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-light">Are you sure you want to clear all your data?</p>
+                <p class="text-gray small">This will remove all transactions, budgets, and reset account balances to zero. Your account and categories will remain.</p>
+                
+                <div class="mt-4">
+                    <label class="form-label text-light">Type "clear all data" to confirm</label>
+                    <input type="text" class="form-control" id="confirmClearText" placeholder="clear all data">
+                </div>
+            </div>
+            <div class="modal-footer border-warning">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('settings.clear_data') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="confirm" id="confirmClearInput">
+                    <button type="submit" class="btn btn-warning" id="confirmClearBtn" disabled>
+                        <i class="bi bi-eraser me-1"></i> Clear All Data
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-danger">
+            <div class="modal-header border-danger">
+                <h5 class="modal-title text-light">
+                    <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>
+                    Delete Account
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-light">Are you absolutely sure you want to delete your account?</p>
+                <p class="text-gray small">This action cannot be undone. All your data will be permanently deleted.</p>
+                
+                <div class="mt-4">
+                    <label class="form-label text-light">Type your email to confirm</label>
+                    <input type="email" class="form-control" id="confirmDeleteText" placeholder="{{ current_user.email }}">
+                </div>
+            </div>
+            <div class="modal-footer border-danger">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('settings.delete_account') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="confirm" id="confirmDeleteInput">
+                    <button type="submit" class="btn btn-danger" id="confirmDeleteBtn" disabled>
+                        <i class="bi bi-trash me-1"></i> Delete Account
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Preferences form submission
+        const preferencesForm = document.getElementById('preferencesForm');
+        const savePreferencesBtn = document.getElementById('savePreferencesBtn');
+        
+        preferencesForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            savePreferencesBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+            savePreferencesBtn.disabled = true;
+            
+            try {
+                const formData = new FormData(preferencesForm);
+                const response = await fetch('{{ url_for("settings.update_preferences") }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': (typeof getCsrfToken === 'function' ? getCsrfToken() : document.querySelector('meta[name="csrf-token"]').getAttribute('content')),
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('success', 'Preferences saved successfully!');
+                } else {
+                    showToast('error', 'Error saving preferences. Please try again.');
+                    console.error(result.errors);
+                }
+            } catch (error) {
+                showToast('error', 'Network error. Please try again.');
+                console.error(error);
+            } finally {
+                savePreferencesBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Save Preferences';
+                savePreferencesBtn.disabled = false;
+            }
+        });
+        
+        // Delete account confirmation
+        const confirmDeleteText = document.getElementById('confirmDeleteText');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const confirmDeleteInput = document.getElementById('confirmDeleteInput');
+        
+        confirmDeleteText.addEventListener('input', function() {
+            const isConfirmed = this.value === '{{ current_user.email }}';
+            confirmDeleteBtn.disabled = !isConfirmed;
+            confirmDeleteInput.value = this.value;
+        });
+        
+        // Clear data confirmation
+        const confirmClearText = document.getElementById('confirmClearText');
+        const confirmClearBtn = document.getElementById('confirmClearBtn');
+        const confirmClearInput = document.getElementById('confirmClearInput');
+        
+        confirmClearText.addEventListener('input', function() {
+            const isConfirmed = this.value.toLowerCase() === 'clear all data';
+            confirmClearBtn.disabled = !isConfirmed;
+            confirmClearInput.value = this.value;
+        });
+        
+        // File import handling
+        const importDropzone = document.getElementById('importDropzone');
+        const importFile = document.getElementById('importFile');
+        const importForm = document.getElementById('importForm');
+        const importBtn = document.getElementById('importBtn');
+        const importType = document.getElementById('importType');
+        
+        importDropzone.addEventListener('click', () => importFile.click());
+        importFile.addEventListener('change', () => {
+            if (importFile.files.length > 0) {
+                const file = importFile.files[0];
+                const fileName = file.name;
+                
+                // Update import type based on file extension
+                if (fileName.endsWith('.json')) {
+                    importType.value = 'json';
+                } else if (fileName.endsWith('.csv')) {
+                    importType.value = 'csv';
+                }
+                
+                // Show file info in dropzone
+                importDropzone.innerHTML = `
+                    <i class="bi bi-file-earmark-text fs-1 mb-3 text-success"></i>
+                    <h6>${fileName}</h6>
+                    <small class="text-gray">${(file.size / 1024 / 1024).toFixed(2)} MB</small>
+                `;
+            }
+        });
+        
+        // Drag and drop for file import
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            importDropzone.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+            importDropzone.addEventListener(eventName, () => {
+                importDropzone.classList.add('dragover');
+            }, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+            importDropzone.addEventListener(eventName, () => {
+                importDropzone.classList.remove('dragover');
+            }, false);
+        });
+        
+        importDropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            
+            if (files.length > 0) {
+                importFile.files = files;
+                const event = new Event('change', { bubbles: true });
+                importFile.dispatchEvent(event);
+            }
+        });
+        
+        // Import form submission
+        importForm.addEventListener('submit', function() {
+            importBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Importing...';
+            importBtn.disabled = true;
+        });
+        
+        // Tab activation animation
+        const tabLinks = document.querySelectorAll('[data-bs-toggle="pill"]');
+        tabLinks.forEach(link => {
+            link.addEventListener('shown.bs.tab', function(event) {
+                const target = document.querySelector(event.target.getAttribute('href'));
+                target.style.animation = 'none';
+                setTimeout(() => {
+                    target.style.animation = 'fadeIn 0.5s ease';
+                }, 10);
+            });
+        });
+    });
+    
+    async function exportBackup() {
+        try {
+            const response = await fetch('{{ url_for("settings.api_backup") }}');
+            const data = await response.json();
+            
+            // Create download link
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-${data.backup_date.split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            showToast('success', 'Backup exported successfully!');
+        } catch (error) {
+            console.error('Error exporting backup:', error);
+            showToast('error', 'Error exporting backup');
+        }
+    }
+    
+    function showToast(type, message) {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        const toastId = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header ${type === 'success' ? 'bg-success' : 'bg-danger'} text-white">
+                    <i class="bi ${type === 'success' ? 'bi-check-circle' : 'bi-exclamation-circle'} me-2"></i>
+                    <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+                </div>
+                <div class="toast-body bg-dark text-light">
+                    ${message}
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+        toast.show();
+        
+        // Remove toast after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,339 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Create Budget - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .form-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.2s;
+    }
+    
+    .help-card {
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideInUp 0.6s ease forwards;
+        animation-delay: 0.4s;
+    }
+    
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .form-step {
+        opacity: 0;
+        transform: translateX(-20px);
+        animation: slideInLeft 0.5s ease forwards;
+    }
+    
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-gray);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus + .input-icon {
+        color: var(--accent);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    .category-preview {
+        padding: 15px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .category-preview:hover {
+        background: rgba(255, 255, 255, 0.08);
+        transform: translateX(5px);
+    }
+    
+    .tip-item {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+        transform: translateX(5px);
+    }
+    
+    .tip-item i {
+        color: var(--accent);
+        transition: all 0.3s ease;
+    }
+    
+    .tip-item:hover i {
+        transform: rotate(10deg);
+    }
+    
+    .hover-lift {
+        transition: all 0.3s ease;
+    }
+    
+    .hover-lift:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+    }
+    
+    .fade-in {
+        opacity: 0;
+        animation: fadeIn 0.8s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="mb-4 fade-in">
+                <a href="{{ url_for('budgets.index') }}{% if request.args.get('month') %}?month={{ request.args.get('month') }}{% endif %}" 
+                   class="btn btn-outline-accent btn-sm mb-3 hover-lift">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Budgets
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-pie-chart text-accent me-2"></i>
+                    Create New Budget
+                </h1>
+                <p class="text-gray">Set a monthly spending limit for a category</p>
+            </div>
+            
+            <!-- Budget Form -->
+            <div class="card form-card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('budgets.create') }}" id="budgetForm">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row form-step" style="animation-delay: 0.1s">
+                            <!-- Category -->
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">Category *</label>
+                                <div class="position-relative">
+                                    {{ form.category_id(class="form-select ps-4") }}
+                                    <div class="input-icon">
+                                        <i class="bi bi-tag"></i>
+                                    </div>
+                                </div>
+                                {% if form.category_id.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.category_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Month -->
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">Month *</label>
+                                <div class="position-relative">
+                                    {{ form.month(class="form-control ps-4", placeholder="YYYYMM") }}
+                                    <div class="input-icon">
+                                        <i class="bi bi-calendar"></i>
+                                    </div>
+                                </div>
+                                <div class="form-text">Format: YYYYMM (e.g., 202412 for December 2024)</div>
+                                {% if form.month.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.month.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Amount -->
+                        <div class="mb-4 form-step" style="animation-delay: 0.2s">
+                            <label class="form-label">Budget Amount *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-dark-gray border-secondary"><i class="bi bi-currency-dollar"></i></span>
+                                {{ form.amount(class="form-control", placeholder="0.00", step="0.01", min="0") }}
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.amount.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Selected Category Preview -->
+                        <div id="categoryPreview" class="category-preview mb-4 form-step" style="animation-delay: 0.3s; display: none;">
+                            <div class="d-flex align-items-center">
+                                <div id="categoryIcon" class="me-3 fs-3"></div>
+                                <div>
+                                    <h6 id="categoryName" class="mb-1"></h6>
+                                    <small id="categoryType" class="text-gray"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-5 form-step" style="animation-delay: 0.4s">
+                            <a href="{{ url_for('budgets.index') }}{% if request.args.get('month') %}?month={{ request.args.get('month') }}{% endif %}" 
+                               class="btn btn-outline-accent hover-lift">Cancel</a>
+                            <button type="submit" class="btn btn-accent hover-lift px-4">
+                                <i class="bi bi-check-circle me-2"></i> Create Budget
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Help Information -->
+            <div class="card help-card mt-4">
+                <div class="card-body">
+                    <h6 class="mb-3"><i class="bi bi-lightbulb text-accent me-2"></i>Budgeting Tips</h6>
+                    <div class="tip-item">
+                        <i class="bi bi-graph-up me-2"></i>
+                        Set realistic budgets based on your historical spending
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-arrow-clockwise me-2"></i>
+                        Review and adjust budgets monthly based on actual needs
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-percent me-2"></i>
+                        Use the 50/30/20 rule: 50% needs, 30% wants, 20% savings
+                    </div>
+                    <div class="tip-item">
+                        <i class="bi bi-bell me-2"></i>
+                        Track your progress throughout the month to stay on target
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const monthInput = document.getElementById('{{ form.month.id }}');
+        const categorySelect = document.getElementById('{{ form.category_id.id }}');
+        const categoryPreview = document.getElementById('categoryPreview');
+        const categoryIcon = document.getElementById('categoryIcon');
+        const categoryName = document.getElementById('categoryName');
+        const categoryType = document.getElementById('categoryType');
+        
+        // Auto-format month input
+        monthInput.addEventListener('input', function() {
+            let value = this.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.substring(0, 6);
+            }
+            this.value = value;
+        });
+        
+        // Set default month to current month if empty
+        if (!monthInput.value) {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            monthInput.value = year + month;
+        }
+        
+        // Category preview functionality
+        const categories = {
+            {% for cat in form.category_id.choices %}
+                "{{ cat[0] }}": {
+                    name: "{{ cat[1] }}",
+                    icon: "{{ cat[1].split(' ')[0] }}",
+                    type: "{{ cat[1].split(' ')[1:] | join(' ') }}"
+                }{% if not loop.last %},{% endif %}
+            {% endfor %}
+        };
+        
+        categorySelect.addEventListener('change', function() {
+            const selectedCategory = categories[this.value];
+            if (selectedCategory) {
+                categoryIcon.innerHTML = selectedCategory.icon;
+                categoryName.textContent = selectedCategory.name.split(' ').slice(1).join(' ');
+                categoryType.textContent = selectedCategory.type;
+                categoryPreview.style.display = 'block';
+                
+                // Animate preview
+                categoryPreview.style.opacity = '0';
+                categoryPreview.style.transform = 'translateX(-10px)';
+                setTimeout(() => {
+                    categoryPreview.style.transition = 'all 0.3s ease';
+                    categoryPreview.style.opacity = '1';
+                    categoryPreview.style.transform = 'translateX(0)';
+                }, 10);
+            } else {
+                categoryPreview.style.display = 'none';
+            }
+        });
+        
+        // Form submission animation
+        const form = document.getElementById('budgetForm');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        
+        form.addEventListener('submit', function(e) {
+            const originalContent = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creating...';
+            submitBtn.disabled = true;
+            
+            // Animate form submission
+            const formCard = document.querySelector('.form-card');
+            formCard.style.transition = 'all 0.3s ease';
+            formCard.style.opacity = '0.8';
+            
+            setTimeout(() => {
+                submitBtn.innerHTML = originalContent;
+                submitBtn.disabled = false;
+                formCard.style.opacity = '1';
+            }, 3000);
+        });
+        
+        // Trigger category preview if already selected
+        if (categorySelect.value) {
+            categorySelect.dispatchEvent(new Event('change'));
+        }
+        
+        // Add floating animation to form elements
+        const formElements = document.querySelectorAll('.form-step');
+        formElements.forEach((el, index) => {
+            setTimeout(() => {
+                el.style.animation = `slideInLeft 0.5s ease forwards ${index * 0.1}s`;
+            }, 100);
+        });
+    });
+</script>
+{% endblock %}

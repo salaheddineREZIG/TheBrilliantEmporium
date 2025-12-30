@@ -1,0 +1,195 @@
+{% extends "accounts/layout.html" %}
+
+{% block title %}Edit Account - The Brilliant Emporium{% endblock %}
+
+{% block extras %}
+<style>
+    .account-info-card {
+        background-color: var(--dark-gray);
+        border-left: 4px solid var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block main %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Page Header -->
+            <div class="mb-4">
+                <a href="{{ url_for('accounts.view', account_id=account.id) }}" class="btn btn-outline-accent btn-sm mb-3">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Account
+                </a>
+                <h1 class="h2 fw-bold">
+                    <i class="bi bi-pencil-square text-accent me-2"></i>
+                    Edit Account
+                </h1>
+                <p class="text-gray">Update your account details</p>
+            </div>
+            
+            <!-- Account Form -->
+            <div class="card">
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('accounts.edit', account_id=account.id) }}">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row">
+                            <!-- Account Name -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Account Name *</label>
+                                {{ form.name(class="form-control", placeholder="e.g., Chase Checking, PayPal") }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Account Type -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Account Type *</label>
+                                {{ form.type(class="form-select") }}
+                                {% if form.type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.type.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <!-- Initial Balance -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Initial Balance *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">{{ account.currency }}</span>
+                                    {{ form.initial_balance(class="form-control", placeholder="0.00") }}
+                                </div>
+                                {% if form.initial_balance.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.initial_balance.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text text-gray">Original balance when account was created</div>
+                            </div>
+                            
+                            <!-- Currency -->
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Currency *</label>
+                                {{ form.currency(class="form-select") }}
+                                {% if form.currency.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.currency.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Account Information -->
+                        <div class="mb-4">
+                            <label class="form-label">Account Information</label>
+                            <div class="card bg-dark-gray account-info-card">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <small class="text-gray d-block">Current Balance</small>
+                                            <strong class="fs-5 {{ 'text-success' if account.current_balance >= 0 else 'text-danger' }}">
+                                                {{ account.currency }} {{ "%.2f"|format(account.current_balance) }}
+                                            </strong>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <small class="text-gray d-block">Created On</small>
+                                            <strong>{{ account.created_at.strftime('%b %d, %Y') }}</strong>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-gray d-block">Last Updated</small>
+                                            <strong>{{ account.updated_at.strftime('%b %d, %Y') }}</strong>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <small class="text-gray d-block">Status</small>
+                                            <span class="badge {{ 'bg-success' if account.is_active else 'bg-secondary' }}">
+                                                {{ 'Active' if account.is_active else 'Archived' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Danger Zone -->
+                        <div class="mb-4">
+                            <label class="form-label text-danger">Danger Zone</label>
+                            <div class="card border-danger">
+                                <div class="card-body">
+                                    <h6 class="text-danger mb-3">Delete Account</h6>
+                                    <p class="small text-gray mb-3">
+                                        {% if account.transactions|length > 0 %}
+                                            This account has {{ account.transactions|length }} transactions. Archiving is recommended.
+                                        {% else %}
+                                            This will permanently delete the account. This action cannot be undone.
+                                        {% endif %}
+                                    </p>
+                                    {% if account.transactions|length > 0 %}
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" form="archiveForm" onclick="return confirm('Archive this account?')">
+                                            <i class="bi bi-archive me-1"></i> Archive Account
+                                        </button>
+                                    {% else %}
+                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                            <i class="bi bi-trash me-1"></i> Delete Account
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Form Actions -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('accounts.view', account_id=account.id) }}" class="btn btn-outline-accent">Cancel</a>
+                            <div>
+                                <button type="submit" class="btn btn-accent">
+                                    <i class="bi bi-check-circle me-1"></i> Update Account
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="archiveForm" method="POST" action="{{ url_for('accounts.delete', account_id=account.id) }}" class="d-none">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Account</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to permanently delete <strong>{{ account.name }}</strong>?</p>
+                <p class="text-gray small">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-accent" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('accounts.delete_permanent', account_id=account.id) }}" class="d-inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="btn btn-danger">Delete Account</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
