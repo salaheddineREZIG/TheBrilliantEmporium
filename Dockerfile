@@ -17,8 +17,6 @@ COPY . .
 
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
-# Add this to fix sendfile issue
-ENV GUNICORN_CMD_ARGS="--worker-tmp-dir /dev/shm"
 
-# Railway will set the PORT environment variable
-CMD ["gunicorn", "wsgi:app", "--bind", "0.0.0.0:$PORT", "--workers", "3"]
+# Use shell form to expand $PORT variable
+CMD gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 3 --worker-tmp-dir /dev/shm
